@@ -9,8 +9,8 @@
     "id": "routing-and-auth-readiness",
     "label": "Canonical docs, /chat routing readiness, and auth boundary hardening"
   },
-  "updated_at": "2026-04-27T17:30:00+08:00",
-  "progress_summary": "This repo is the deployment wrapper for the official LobeHub image on the local Mac. Canonical project docs are now being standardized so new sessions can quickly see that the current baseline is compose packaging plus route/auth readiness, not an already-finished `/chat` production rollout.",
+  "updated_at": "2026-04-27T18:10:00+08:00",
+  "progress_summary": "This repo is the deployment wrapper for the official LobeHub image on the local Mac. Canonical docs now capture the current official-image baseline, the verified control-plane auth/routing gaps, and the fact that `/chat` is not yet a completed production rollout.",
   "blockers": [
     "The public `/chat` route still requires the final edge reverse-proxy rule outside this repository.",
     "Real deploy secrets and allowed-account values still need to be supplied in `deploy/.env` before any full user-facing validation can be declared complete."

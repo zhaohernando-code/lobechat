@@ -53,7 +53,7 @@ scripts/lobehubctl.sh pull
 scripts/lobehubctl.sh up
 ```
 
-升级后必须跑 `docs/ACCEPTANCE.md` 中的登录、会话、流式、刷新、重启恢复检查。
+升级后必须跑 `docs/contracts/ACCEPTANCE.md` 中的登录、会话、流式、刷新、重启恢复检查。
 
 ## 回滚
 
@@ -70,4 +70,3 @@ scripts/lobehubctl.sh up
 - 端口 `3210/54329/63790/9000/9001` 不能被占用。
 - 服务器入口层到本机的隧道/代理必须持续在线。
 - 证书续期在服务器入口层完成，不由本项目处理。
-

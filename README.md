@@ -14,7 +14,7 @@
 
 ## 当前判断
 
-- 官方仓库已经从 `lobehub/lobe-chat` 迁移/重命名到 `lobehub/lobehub`，GitHub 当前 latest release 显示为 `v2.1.52`（2026-04-20）。
+- 官方仓库已经从 `lobehub/lobe-chat` 迁移/重命名到 `lobehub/lobehub`；2026-04-27 重新核对 GitHub Releases 时，stable latest 为 `v2.1.51`（2026-04-16），同时存在更新的 canary / PR 测试构建，不作为生产基线。
 - 官方当前 Docker Compose 文档推荐完整自托管栈：`lobehub/lobehub:latest`、PostgreSQL、Redis、RustFS 和 Searxng。
 - LobeHub 官方支持多供应商模型接入、服务端 PostgreSQL、Better Auth、OIDC/SSO、文件/知识库、MCP/插件等能力；一期只验收对话主链路，不验收文件上传、知识库、插件市场和桌面端。
 - 现有 `hernando-zhao.cn` 控制面代码中没有可直接复用给 LobeHub 的 OIDC/OAuth 账号源；`local-control-server` 目前是本地 `authMode=disabled`，它的 `sessions` 表不是统一身份系统。
@@ -51,7 +51,7 @@ scripts/lobehubctl.sh up
 - RustFS API: `http://127.0.0.1:9000`
 - RustFS Console: `http://127.0.0.1:9001`
 
-公网入口目标是 `https://hernando-zhao.cn/chat`。由于当前平台已有 `/projects/*` 隧道规范，但 `/chat` 是业务别名，最终上线需要服务器入口层增加一条 `/chat` 反向代理规则，详见 `docs/ROUTING.md`。
+公网入口目标是 `https://hernando-zhao.cn/chat`。由于当前平台已有 `/projects/*` 隧道规范，但 `/chat` 是业务别名，最终上线需要服务器入口层增加一条 `/chat` 反向代理规则，详见 `docs/contracts/ROUTING.md`。
 
 ## Task closeout
 

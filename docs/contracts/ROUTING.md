@@ -7,6 +7,12 @@
 - 本机项目目录：`/Users/hernando_zhao/codex/projects/lobechat`
 - 持久化目录：`/Users/hernando_zhao/codex/projects/lobechat/data`
 
+## 当前内部落点
+
+- `~/codex/projects/local-control-server/server.js` 已登记 `lobechat` 项目，当前仅提供内部工具入口 `/tools/lobechat`。
+- `~/codex/projects/local-control-server/tool-runtime.js` 的通用暴露层只识别 `/tools/*` 和 `/projects/*`，不会自动生成 `/chat`。
+- 因此 `/chat` 必须由服务器入口层或后续平台路由改造提供；不能假设当前控制面会自动代理到 LobeHub。
+
 ## 子路径风险
 
 LobeHub 官方文档主要描述根路径域名或独立子域，例如 `https://lobehub.example.com`。`/chat` 是主站子路径，会影响：
@@ -76,4 +82,3 @@ https://hernando-zhao.cn/chat-s3
 ```
 
 这需要入口层另增 RustFS API 代理，且要配置 CORS。
-

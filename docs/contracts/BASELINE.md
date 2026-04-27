@@ -33,7 +33,7 @@ LobeHub 当前已经具备这些一期需要的基础能力：
 - `~/codex/CODEX.md` 定义当前拓扑：根域名 `/` 是统一登录页，控制面是 `/middle`，动态项目规范路径是 `/projects/<project-id>/`，业务入口可以有别名。
 - `~/codex/projects/local-control-server/auth-runtime.js` 当前返回 `authMode=disabled`，没有可给 LobeHub 使用的 OAuth/OIDC 发行者。
 - `~/codex/projects/local-control-server/tool-runtime.js` 只内建 `/tools/*` 和 `/projects/*` 分发逻辑。
+- `~/codex/projects/local-control-server/server.js` 已登记 `lobechat` 项目和 `/tools/lobechat`，但没有登记用户入口 `/chat` 或项目暴露路径。
 - `~/.config/codex/project-tunnel.ashare-dashboard.env` 显示现有股票看板通过 SSH 反向隧道接到服务器，并由服务器入口层提供业务别名 `/stocks`。
 
 结论：LobeHub 可以直接用官方 Docker 栈跑起来；但 `/chat` 业务别名、子路径资源、认证统一、SSE/长连接代理需要服务器入口层配合，不是 LobeHub 官方镜像单独能解决的事情。
-

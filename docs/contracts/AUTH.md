@@ -8,6 +8,7 @@
 - `auth-runtime.js` 只保留本地 Bearer session 读取和退出，设备登录已退役。
 - `state-store.js` 中的 `sessions` 表是控制面会话，不是用户账号表，也不是 OIDC Provider。
 - 现有股票看板入口依赖服务器入口层鉴权/代理，而不是项目内部复用同一套用户表。
+- `server.js` 里登记的 `lobechat` 只是项目元数据，不附带共享登录、OIDC 发行者或 `/chat` 访问控制。
 
 ## 一期落地策略
 
@@ -48,4 +49,3 @@ AUTH_DISABLE_EMAIL_PASSWORD=1
 2. 重启 `lobe` 服务。
 3. 用户通过 `/chat` 登录。
 4. 如后续启用邮箱验证或 OIDC，再迁移到统一后台维护。
-
