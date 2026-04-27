@@ -1,0 +1,49 @@
+{
+  "project": "lobechat",
+  "status": "in_progress",
+  "current_phase": {
+    "id": "baseline-packaging",
+    "label": "Official image packaging and route-readiness hardening"
+  },
+  "current_milestone": {
+    "id": "routing-and-auth-readiness",
+    "label": "Canonical docs, /chat routing readiness, and auth boundary hardening"
+  },
+  "updated_at": "2026-04-27T17:30:00+08:00",
+  "progress_summary": "This repo is the deployment wrapper for the official LobeHub image on the local Mac. Canonical project docs are now being standardized so new sessions can quickly see that the current baseline is compose packaging plus route/auth readiness, not an already-finished `/chat` production rollout.",
+  "blockers": [
+    "The public `/chat` route still requires the final edge reverse-proxy rule outside this repository.",
+    "Real deploy secrets and allowed-account values still need to be supplied in `deploy/.env` before any full user-facing validation can be declared complete."
+  ],
+  "next_step": "Keep the repo focused on official-image deployment, finish edge routing and deploy-secret setup, and verify the actual user-facing `/chat` route once the environment is ready.",
+  "linked_docs": [
+    {
+      "path": "/Users/hernando_zhao/codex/projects/lobechat/README.md",
+      "role": "entrypoint"
+    },
+    {
+      "path": "/Users/hernando_zhao/codex/projects/lobechat/PROJECT_RULES.md",
+      "role": "repo_rules"
+    },
+    {
+      "path": "/Users/hernando_zhao/codex/projects/lobechat/DECISIONS.md",
+      "role": "decision_log"
+    },
+    {
+      "path": "/Users/hernando_zhao/codex/projects/lobechat/PROCESS.md",
+      "role": "process_log"
+    },
+    {
+      "path": "/Users/hernando_zhao/codex/projects/lobechat/docs/contracts/OPERATIONS.md",
+      "role": "operations_contract"
+    },
+    {
+      "path": "/Users/hernando_zhao/codex/projects/lobechat/docs/contracts/ROUTING.md",
+      "role": "routing_contract"
+    },
+    {
+      "path": "/Users/hernando_zhao/codex/projects/lobechat/docs/contracts/AUTH.md",
+      "role": "auth_contract"
+    }
+  ]
+}

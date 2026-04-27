@@ -1,0 +1,8 @@
+deploy/.env
+backups/*.sql
+backups/*.tar.gz
+backups/*.dump
+data/
+runtime/
+.DS_Store
+

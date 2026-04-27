@@ -1,0 +1,17 @@
+{
+  "mode": "manual_local_compose",
+  "projectId": "lobechat",
+  "sourcePath": "$HOME/codex/projects/lobechat",
+  "runtime": {
+    "type": "docker_compose",
+    "composeFile": "deploy/docker-compose.yml",
+    "envFile": "deploy/.env",
+    "localUrl": "http://127.0.0.1:3210",
+    "publicUrl": "https://hernando-zhao.cn/chat"
+  },
+  "notes": [
+    "This project is a deployment wrapper for the official LobeHub image, not a fork of upstream source.",
+    "Public /chat routing still requires an edge reverse-proxy rule outside this repository."
+  ]
+}
+
