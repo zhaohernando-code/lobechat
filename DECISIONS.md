@@ -1,5 +1,13 @@
 # LobeChat Deployment Decisions
 
+[2026-04-28T23:05:00+08:00] Root-domain managed-user decision:
+The root-domain identity source for `/chat` is now a small managed internal user store rather than a single hardcoded login. `root` remains the only administrator, while normal internal users are `member` accounts created or reset only through the root-domain account-management surface.
+
+补充说明
+- LobeHub still does not own user creation or password management.
+- Multi-user support for `/chat` now depends on root-domain OIDC claims derived from the managed user store, not on any LobeHub-local password database.
+- `member` users are allowed into `/chat`, but `/middle` remains root-only at the edge.
+
 [2026-04-28T21:19:15+08:00] Mounted-subpath custom-image decision:
 The final `/chat` delivery path keeps the official-image wrapper model, but mounted same-domain delivery now depends on a narrow custom image patch layer in `scripts/lobehubctl.sh build-image`. The wrapper patches upstream cached `src/spa/entry.web.tsx` and `src/layout/GlobalProvider/useUserStateRedirect.ts` so both SPA basename resolution and browser-side onboarding redirects honor `NEXT_PUBLIC_BASE_PATH`.
 

@@ -30,8 +30,23 @@ AUTH_GENERIC_OIDC_ISSUER=https://hernando-zhao.cn
 
 - 一期只开放预置账号，不开放公网注册。
 - LobeHub 邮箱密码登录关闭，避免形成第二套账号体系。
-- 根域当前预置账号映射到 OIDC claims：`sub=hz-root`、`email=root@hernando-zhao.cn`。
-- 后续少量新增用户时，应先把根域登录从单账号结构扩展为用户表，再由 OIDC claims 输出真实 `sub/email/name`；不要在 LobeHub 内单独新增邮箱密码用户。
+- 根域入口层现在已经从单账号扩展成少量内部用户表：`root` 是唯一管理员，普通内部用户为 `member`。
+- 根域用户通过 OIDC claims 映射到 LobeHub：`sub=email/name` 不再固定只对应 `root`，而是随根域用户记录变化。
+- 新增用户必须继续走根域账号管理，不要在 LobeHub 内单独新增邮箱密码用户。
+
+## 当前多账户落地
+
+- 根域账号源来自 `domain-temp-site/auth-users.json`，由根域代理签发 `hz_auth_session`。
+- `hz_auth_session` payload 包含用户名和 `sessionVersion`；密码修改或 root 重置密码后，旧 session 会失效。
+- `root` 登录后可访问账号管理页 `/admin/accounts`，用于创建少量 `member` 账号和重置其密码。
+- 所有已登录用户都可访问 `/account/password` 修改自己的密码。
+- `member` 用户允许进入 `/chat`，并继续通过 `generic-oidc` 自动换取 LobeHub 应用会话，不需要 LobeHub 本地账户。
+
+## 与其他入口的权限边界
+
+- `/chat`：允许 `root` 和 `member`。
+- `/stocks`：当前阶段允许 `root` 和 `member`，但仍是共享 full access，不代表 stock dashboard 已完成细粒度多租户/RBAC。
+- `/middle`：root-only，由根域代理在服务端直接拦截；`member` 不能依靠前端绕过访问控制面。
 
 ## 验收规则
 

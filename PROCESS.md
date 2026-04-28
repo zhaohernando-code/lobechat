@@ -2,6 +2,10 @@
 
 ## 2026-04-28
 
+- Problem: the original root-domain auth bridge described `/chat` as a shared-account entry, but the real domain still only had a single hardcoded root login, so “future multi-user support” existed only on paper and not as a live identity source.
+- Resolution: the root-domain edge now owns a small managed user store (`root` + `member` roles), exposes root-only account management, allows self-service password changes, and emits real per-user OIDC claims to LobeHub without enabling any LobeHub-local password login.
+- Prevention: when this wrapper says “same-domain account system,” verify the root-domain identity layer itself already supports the intended user model. Do not describe downstream OIDC consumers as multi-user-ready while the upstream login source is still single-account.
+
 - Problem: after root-domain OIDC and `/chat` aliasing were repaired, Safari could still authenticate and land on `/chat/onboarding` while the UI stayed on `Loading`, which made it look like an edge/proxy failure even though the remaining fault was inside the mounted client runtime.
 - Resolution: stopped iterating on proxy guesses and traced the full chain end-to-end. The final fix kept the official image wrapper but made the build step patch two upstream client paths: `src/spa/entry.web.tsx` now honors `NEXT_PUBLIC_BASE_PATH` for the SPA basename, and `src/layout/GlobalProvider/useUserStateRedirect.ts` now strips/reapplies the configured base path before browser redirects. After rebuilding the custom image and recreating the app container, Safari reached `/chat/onboarding/classic`, completed onboarding, and entered the usable `/chat` homepage.
 - Prevention: for mounted apps, do not stop at edge routing and auth success. If the browser reaches the shell but stalls after login, validate both router basename handling and browser-side `window.location` redirects under the mounted path before changing the proxy again.
