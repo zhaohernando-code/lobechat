@@ -15,19 +15,22 @@
 ## 当前判断
 
 - 官方仓库已经从 `lobehub/lobe-chat` 迁移/重命名到 `lobehub/lobehub`；2026-04-27 重新核对 GitHub Releases 时，stable latest 为 `v2.1.51`（2026-04-16），同时存在更新的 canary / PR 测试构建，不作为生产基线。
-- 官方当前 Docker Compose 文档推荐完整自托管栈：`lobehub/lobehub:latest`、PostgreSQL、Redis、RustFS 和 Searxng。
+- 官方当前 Docker Compose 文档推荐完整自托管栈：LobeHub 应用 + PostgreSQL、Redis、RustFS 和 Searxng。
+- 官方文档同时明确说明：`NEXT_PUBLIC_*` 变量属于构建期覆盖项；如果要稳定支持 `/chat` 这类子路径，需要先构建 custom image，再由 Compose 运行，而不是指望 stock image 在运行时读取 `NEXT_PUBLIC_BASE_PATH`。
 - LobeHub 官方支持多供应商模型接入、服务端 PostgreSQL、Better Auth、OIDC/SSO、文件/知识库、MCP/插件等能力；一期只验收对话主链路，不验收文件上传、知识库、插件市场和桌面端。
-- 现有 `hernando-zhao.cn` 控制面代码中没有可直接复用给 LobeHub 的 OIDC/OAuth 账号源；`local-control-server` 目前是本地 `authMode=disabled`，它的 `sessions` 表不是统一身份系统。
-- 因此一期采用 LobeHub 官方 Better Auth/数据库会话作为落地基线，并用 `AUTH_ALLOWED_EMAILS` 收敛到预置账号清单；真正“全域统一账号”需要后续把根域名登录改造成 OIDC Provider 或接入独立 IdP。
+- 根域名入口层现在是一期统一账号源：`port80-proxy.js` 的 `hz_auth_session` 登录会话同时提供一个最小 OIDC Provider，LobeHub 作为 `generic-oidc` client 接入。
+- LobeHub 邮箱密码登录已在一期禁用；用户通过根域统一登录后进入 `/chat` 时会自动发起 OIDC，不应再看到“登录或注册你的 LobeHub 账号”的二次登录页。
 
 ## 目录
 
-- `deploy/docker-compose.yml`：本机常驻 Docker Compose 栈。
+- `deploy/docker-compose.yml`：本机常驻 Docker Compose 栈；应用镜像默认读取 `deploy/.env` 里的 `LOBEHUB_IMAGE`。
 - `deploy/.env.example`：不含真实密钥的环境变量模板。
-- `scripts/lobehubctl.sh`：本机启动、停止、日志、备份、校验入口。
+- `.codex.deploy.json`：控制面支持的 `local_runtime_service` 发布配置；用于同步包装层、保留本机数据/密钥，并在存在 `deploy/.env` 时校验 Compose。
+- `scripts/lobehubctl.sh`：本机构建、启动、停止、日志、备份、校验入口。
+- `scripts/start-local-frontend.sh`：控制面本机运行探针使用的前台服务守护脚本；负责等待 Docker 并确保 LobeHub Compose 栈启动。
 - `docs/contracts/BASELINE.md`：官方能力与一期边界。
 - `docs/contracts/ROUTING.md`：`/chat` 子路径和反向代理适配说明。
-- `docs/contracts/AUTH.md`：账号体系摸底结论和一期策略。
+- `docs/contracts/AUTH.md`：根域 OIDC 桥接、预置账号和禁注册策略。
 - `docs/contracts/MODELS.md`：OpenAI、OpenAI 兼容、Anthropic、Gemini、DeepSeek 配置基线。
 - `docs/contracts/OPERATIONS.md`：上线、备份、恢复、升级和回滚手册。
 - `docs/contracts/ACCEPTANCE.md`：准生产验收清单。
@@ -35,12 +38,13 @@
 
 ## 本机运行
 
-生成本地 `.env` 后再启动：
+生成本地 `.env` 后先构建 custom image，再启动：
 
 ```bash
 cd /Users/hernando_zhao/codex/projects/lobechat
 cp deploy/.env.example deploy/.env
 scripts/lobehubctl.sh secrets
+scripts/lobehubctl.sh build-image
 scripts/lobehubctl.sh config
 scripts/lobehubctl.sh up
 ```
@@ -53,6 +57,27 @@ scripts/lobehubctl.sh up
 
 公网入口目标是 `https://hernando-zhao.cn/chat`。由于当前平台已有 `/projects/*` 隧道规范，但 `/chat` 是业务别名，最终上线需要服务器入口层增加一条 `/chat` 反向代理规则，详见 `docs/contracts/ROUTING.md`。
 
+## 构建加速
+
+首次冷构建会拉取上游 monorepo 依赖，耗时主要取决于 npm registry 网络质量。wrapper 现在直接透传上游已经支持的 `USE_CN_MIRROR` 开关：
+
+```bash
+cd /Users/hernando_zhao/codex/projects/lobechat
+USE_CN_MIRROR=true scripts/lobehubctl.sh build-image
+```
+
+如果希望长期默认使用国内镜像，也可以把下面这行写进 `deploy/.env`：
+
+```bash
+USE_CN_MIRROR=true
+```
+
+说明：
+
+- 这个开关只影响 `build-image` 阶段，不改变运行时 provider API 地址。
+- 上游 Dockerfile 在 `USE_CN_MIRROR=true` 时会切到 `https://registry.npmmirror.com/`，并同步切换 `sentry-cli`、`canvas` 下载镜像。
+- 如果你本机还有额外代理要求，继续配合 `HTTP_PROXY`、`HTTPS_PROXY`、`NO_PROXY` 使用，不要把 provider 的代理地址和构建镜像源混为一类。
+
 ## Task closeout
 
 - Default branch name: `task/lobechat/<yyyymmdd>-<slug>`
@@ -64,6 +89,7 @@ scripts/lobehubctl.sh up
 这些内容不能自动生成，需要在正式上线前填入 `deploy/.env`：
 
 - `AUTH_ALLOWED_EMAILS`
+- `AUTH_GENERIC_OIDC_SECRET`，必须和服务器入口层 `HZ_OIDC_CLIENT_SECRET` 一致。
 - `OPENAI_API_KEY`
 - `ANTHROPIC_API_KEY`
 - `GOOGLE_API_KEY`

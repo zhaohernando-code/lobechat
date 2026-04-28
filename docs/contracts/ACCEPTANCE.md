@@ -6,11 +6,15 @@
 - `scripts/lobehubctl.sh up` 后 `lobe`、`postgresql`、`redis`、`rustfs` 均为 running/healthy。
 - `http://127.0.0.1:3210` 可访问。
 - `https://hernando-zhao.cn/chat` 可访问，且 `/chat` 会规范化到 `/chat/`。
+- 根域统一登录后，`/chat/` 必须自动完成 OIDC 桥接并进入 LobeHub 会话页面；不得停留在“登录或注册你的 LobeHub 账号”的二次登录页。
+- LobeHub 生成的 root-scoped `/signin`、`/_next/*` 和上下文型 `/api/*` 请求必须被正确归属到 `/chat` 隧道，不能和根站控制面冲突。
+- 统一登录主页 `https://hernando-zhao.cn/` 出现 LobeChat 入口卡片，并指向 `/chat`。
+- 控制中台 `https://hernando-zhao.cn/middle` 的“工具入口”页出现 LobeChat 入口；入口必须能进入真实用户路由，而不是只停留在占位项目记录。
 
 ## 账号
 
-- 非白名单邮箱不能进入。
-- 白名单预置账号能登录。
+- 非根域预置账号不能进入。
+- 根域预置账号登录后能免二次登录进入 LobeHub。
 - 注册不对任意公网用户开放。
 - 退出登录后不能继续访问私人会话。
 
@@ -44,4 +48,3 @@
 - 停服务后重启，消息历史仍存在。
 - Docker Desktop 重启后服务可恢复。
 - 升级前有备份，升级失败可回滚镜像 tag 或恢复数据库。
-

@@ -2,7 +2,7 @@ name: lobehub-local
 
 services:
   lobe:
-    image: lobehub/lobehub:${LOBEHUB_IMAGE_TAG:-latest}
+    image: ${LOBEHUB_IMAGE:-lobehub-custom:latest}
     container_name: lobehub-app
     restart: unless-stopped
     depends_on:
@@ -11,29 +11,54 @@ services:
       redis:
         condition: service_healthy
       rustfs:
-        condition: service_started
+        condition: service_healthy
+      rustfs-init:
+        condition: service_completed_successfully
       searxng:
         condition: service_started
     ports:
       - "127.0.0.1:${LOBE_PORT:-3210}:3210"
-    env_file:
-      - .env
     environment:
-      APP_URL: ${APP_URL:-https://hernando-zhao.cn/chat}
+      APP_URL: ${APP_URL:-https://hernando-zhao.cn}
       INTERNAL_APP_URL: ${INTERNAL_APP_URL:-http://lobe:3210}
-      NEXT_PUBLIC_AUTH_URL: ${NEXT_PUBLIC_AUTH_URL:-https://hernando-zhao.cn/chat}
       AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_ALLOWED_EMAILS: ${AUTH_ALLOWED_EMAILS}
+      AUTH_DISABLE_EMAIL_PASSWORD: ${AUTH_DISABLE_EMAIL_PASSWORD:-0}
+      AUTH_EMAIL_VERIFICATION: ${AUTH_EMAIL_VERIFICATION:-0}
+      AUTH_TRUSTED_ORIGINS: ${AUTH_TRUSTED_ORIGINS:-https://hernando-zhao.cn}
+      AUTH_SSO_PROVIDERS: ${AUTH_SSO_PROVIDERS:-}
+      AUTH_GENERIC_OIDC_ID: ${AUTH_GENERIC_OIDC_ID:-}
+      AUTH_GENERIC_OIDC_SECRET: ${AUTH_GENERIC_OIDC_SECRET:-}
+      AUTH_GENERIC_OIDC_ISSUER: ${AUTH_GENERIC_OIDC_ISSUER:-}
       KEY_VAULTS_SECRET: ${KEY_VAULTS_SECRET}
       DATABASE_DRIVER: ${DATABASE_DRIVER:-node}
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgresql:5432/${LOBE_DB_NAME:-lobechat}
       REDIS_URL: redis://redis:6379/0
-      S3_ENDPOINT: http://rustfs:9000
+      REDIS_PREFIX: lobechat
+      REDIS_TLS: "0"
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://rustfs:9000}
       S3_PUBLIC_DOMAIN: ${S3_PUBLIC_DOMAIN:-https://hernando-zhao.cn/chat-s3}
       S3_BUCKET: ${RUSTFS_LOBE_BUCKET:-lobe}
+      S3_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
       S3_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY}
       S3_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY}
       S3_ENABLE_PATH_STYLE: "1"
+      S3_SET_ACL: "0"
+      LLM_VISION_IMAGE_USE_BASE64: "1"
       SEARXNG_URL: http://searxng:8080
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_PROXY_URL: ${OPENAI_PROXY_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL_LIST: ${OPENAI_MODEL_LIST:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL_LIST: ${ANTHROPIC_MODEL_LIST:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GOOGLE_MODEL_LIST: ${GOOGLE_MODEL_LIST:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_PROXY_URL: ${DEEPSEEK_PROXY_URL:-https://api.deepseek.com/v1}
+      DEEPSEEK_MODEL_LIST: ${DEEPSEEK_MODEL_LIST:-deepseek-chat,deepseek-reasoner}
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-127.0.0.1,localhost,postgresql,redis,rustfs,searxng,lobe}
     networks:
       - lobehub
 
@@ -86,6 +111,12 @@ services:
       RUSTFS_CONSOLE_ENABLE: "true"
     volumes:
       - ../data/rustfs:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/health >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    command: ["--access-key", "${RUSTFS_ACCESS_KEY}", "--secret-key", "${RUSTFS_SECRET_KEY}", "/data"]
     networks:
       - lobehub
 
@@ -93,7 +124,8 @@ services:
     image: minio/mc:latest
     container_name: lobehub-rustfs-init
     depends_on:
-      - rustfs
+      rustfs:
+        condition: service_healthy
     restart: "no"
     entrypoint: >
       /bin/sh -c "
@@ -101,8 +133,10 @@ services:
       mc mb -p rustfs/$${RUSTFS_LOBE_BUCKET:-lobe} || true;
       mc anonymous set download rustfs/$${RUSTFS_LOBE_BUCKET:-lobe} || true;
       "
-    env_file:
-      - .env
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
+      RUSTFS_LOBE_BUCKET: ${RUSTFS_LOBE_BUCKET:-lobe}
     networks:
       - lobehub
 
@@ -120,4 +154,3 @@ services:
 networks:
   lobehub:
     driver: bridge
-
