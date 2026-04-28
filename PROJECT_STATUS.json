@@ -15,7 +15,7 @@
     "Non-DeepSeek provider keys in `deploy/.env` remain placeholders, so Anthropic/OpenAI/Google model validation is still intentionally out of scope for this round.",
     "The live app still emits low-priority asset noise such as missing `favicon-progress.ico` variants, but this does not block auth, onboarding, homepage delivery, or the validated DeepSeek chat path."
   ],
-  "next_step": "Finish real-browser member verification for `/chat` under the new root-domain user-store model, then intentionally keep or remove the temporary smoke-test member account. After that, any remaining work is optional cleanup: broader provider coverage, low-priority asset noise, and future wrapper maintenance as upstream changes.",
+  "next_step": "Any remaining work is now optional cleanup: broader provider coverage, low-priority asset noise, and future verification of additional real member accounts under the root-domain user-store model as they are provisioned.",
   "linked_docs": [
     {
       "path": "/Users/hernando_zhao/codex/projects/lobechat/README.md",
