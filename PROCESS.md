@@ -1,5 +1,11 @@
 # PROCESS
 
+## 2026-05-02
+
+- Problem: LobeChat 界面报告网络搜索不可用。日志显示 SearXNG search API 持续返回 403 Forbidden，而 HTML 格式搜索正常。
+- Resolution: SearXNG 的 `use_default_settings: true` 拉取的上游默认配置将 `search.formats` 限制为 `[html]`，导致所有 `format=json` 请求返回 403。在 `searxng-settings.yml` 的 `search` 段显式添加 `formats: [html, json]` 覆盖默认值后恢复。
+- Prevention: 使用 SearXNG 且消费者依赖 JSON API 时，必须在项目级 settings.yml 中显式声明 `search.formats` 包含 `json`，不能依赖上游默认配置。
+
 ## 2026-04-28
 
 - Problem: the original root-domain auth bridge described `/chat` as a shared-account entry, but the real domain still only had a single hardcoded root login, so “future multi-user support” existed only on paper and not as a live identity source.

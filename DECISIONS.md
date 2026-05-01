@@ -54,6 +54,14 @@ The repo's `.codex.deploy.json` uses the supported `local_runtime_service` mode.
 [2026-04-28T00:46:00+08:00] Upstream auth URL compatibility decision:
 This wrapper must not export `NEXT_PUBLIC_AUTH_URL`. Current upstream LobeHub images treat that variable as deprecated and refuse to keep the app process running when it is present. The wrapper now relies on `APP_URL`, `INTERNAL_APP_URL`, and header-based auth URL detection instead of preserving the older explicit auth URL export.
 
+[2026-05-02T16:11:00+08:00] SearXNG JSON format configuration decision:
+SearXNG upstream defaults (pulled via `use_default_settings: true`) restrict `search.formats` to `[html]` only, which silently blocks JSON API queries with 403 Forbidden. LobeChat's `SearXNGClient` always queries with `format=json`, so the wrapper must explicitly add `json` to the allowed formats in `searxng-settings.yml`.
+
+补充说明
+- The fix is a one-line config override: `search.formats: [html, json]` in the project-level settings file.
+- This is a SearXNG config surface, not a LobeHub or wrapper code change. Future SearXNG upstream changes to default formats may require re-checking this setting.
+- The `use_default_settings: true` setting is still correct; the narrower `formats` restriction is an upstream security default that the wrapper must be explicit about overriding.
+
 [2026-04-28T12:50:00+08:00] Root-domain account unification decision:
 一期账号策略改为根域统一登录 + OIDC bridge。`port80-proxy.js` is the root-domain identity boundary: it keeps issuing `hz_auth_session`, exposes a minimal OIDC Provider for LobeHub, and auto-initiates LobeHub `generic-oidc` sign-in when an already-authenticated root-domain user reaches the LobeHub sign-in route. LobeHub remains the official image and is configured as an OIDC client with email/password disabled.
 
