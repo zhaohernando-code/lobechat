@@ -4,9 +4,23 @@
 
 ```bash
 cd /Users/hernando_zhao/codex/projects/lobechat
+scripts/lobehubctl.sh build-image
 scripts/lobehubctl.sh config
 scripts/lobehubctl.sh up
 scripts/lobehubctl.sh ps
+```
+
+`build-image` 会从 `deploy/.env` 指定的 `LOBEHUB_UPSTREAM_REPO` / `LOBEHUB_UPSTREAM_REF` 获取上游源码，并把 `NEXT_PUBLIC_BASE_PATH` 作为构建期参数固化进 `LOBEHUB_IMAGE`。这一步现在是 `/chat` 子路径部署的正式前置条件，不再依赖 stock image 的运行时环境变量覆盖。
+
+首次启动前，`deploy/.env` 里至少要替换 `POSTGRES_PASSWORD`、`AUTH_SECRET`、`KEY_VAULTS_SECRET`、`RUSTFS_SECRET_KEY`，并确认 `AUTH_GENERIC_OIDC_SECRET` 与服务器入口层 `HZ_OIDC_CLIENT_SECRET` 一致。真实值不能写入 `.env.example` 或文档。
+
+一期账号配置必须保持根域 OIDC 桥接：
+
+```env
+AUTH_DISABLE_EMAIL_PASSWORD=1
+AUTH_SSO_PROVIDERS=generic-oidc
+AUTH_GENERIC_OIDC_ID=lobehub
+AUTH_GENERIC_OIDC_ISSUER=https://hernando-zhao.cn
 ```
 
 ## 日志
@@ -58,10 +72,11 @@ scripts/lobehubctl.sh up
 ## 回滚
 
 1. 在 `deploy/.env` 中把 `LOBEHUB_IMAGE_TAG` 改回上一个可用版本。
-2. `scripts/lobehubctl.sh up`
-3. 如果数据库迁移已破坏兼容性，使用升级前备份恢复。
+2. 如需更换上游版本，同时更新 `LOBEHUB_UPSTREAM_REF` 后重新执行 `scripts/lobehubctl.sh build-image`
+3. `scripts/lobehubctl.sh up`
+4. 如果数据库迁移已破坏兼容性，使用升级前备份恢复。
 
-生产升级前不要只使用 `latest` 做不可回滚升级；确认稳定版本后应 pin 到具体 tag。
+生产升级前不要只使用 `main` / `latest` 做不可回滚升级；确认稳定版本后应 pin 到具体 tag 或 commit。
 
 ## Mac 本机风险
 
