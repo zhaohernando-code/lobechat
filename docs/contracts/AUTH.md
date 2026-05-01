@@ -14,7 +14,7 @@
 `deploy/.env` 中账号相关配置应保持：
 
 ```env
-AUTH_ALLOWED_EMAILS=root@hernando-zhao.cn
+AUTH_ALLOWED_EMAILS=
 AUTH_DISABLE_EMAIL_PASSWORD=1
 AUTH_EMAIL_VERIFICATION=0
 AUTH_TRUSTED_ORIGINS=https://hernando-zhao.cn
@@ -33,6 +33,7 @@ AUTH_GENERIC_OIDC_ISSUER=https://hernando-zhao.cn
 - 根域入口层现在已经从单账号扩展成少量内部用户表：`root` 是唯一管理员，普通内部用户为 `member`。
 - 根域用户通过 OIDC claims 映射到 LobeHub：`sub=email/name` 不再固定只对应 `root`，而是随根域用户记录变化。
 - 新增用户必须继续走根域账号管理，不要在 LobeHub 内单独新增邮箱密码用户。
+- 在当前 OIDC-only 部署里，`AUTH_ALLOWED_EMAILS` 应保持为空。根域账号库才是唯一准入边界；LobeHub 不再额外维护一份邮箱白名单，否则会和根域用户表漂移。
 
 ## 当前多账户落地
 

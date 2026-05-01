@@ -88,7 +88,6 @@ USE_CN_MIRROR=true
 
 这些内容不能自动生成，需要在正式上线前填入 `deploy/.env`：
 
-- `AUTH_ALLOWED_EMAILS`
 - `AUTH_GENERIC_OIDC_SECRET`，必须和服务器入口层 `HZ_OIDC_CLIENT_SECRET` 一致。
 - `OPENAI_API_KEY`
 - `ANTHROPIC_API_KEY`

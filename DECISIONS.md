@@ -46,7 +46,7 @@ The local Compose file should stay close to the current official LobeHub server-
 The wrapper does not rely on service-level `env_file: .env`; instead, required variables are surfaced explicitly in `environment`. This keeps provider/auth variables available to containers while allowing static validation with `deploy/.env.example` before real secrets exist.
 
 [2026-04-27T19:50:00+08:00] Safe auth default decision:
-`AUTH_ALLOWED_EMAILS` must not default to empty in this deployment wrapper because upstream treats an empty allowlist as open registration. The example and local bootstrap default to `replace-me@example.invalid` until real pre-provisioned accounts are supplied.
+Before shared root-domain OIDC existed, this wrapper used `AUTH_ALLOWED_EMAILS` as a temporary guardrail because upstream treats an empty allowlist as open registration in email/password mode.
 
 [2026-04-27T22:55:00+08:00] Control-plane deploy profile decision:
 The repo's `.codex.deploy.json` uses the supported `local_runtime_service` mode. For this Docker Compose wrapper, that mode syncs the canonical wrapper back to the local project path, preserves `data/`, `backups/`, and `deploy/.env`, creates expected local directories, and validates Compose only when real deploy secrets already exist. It does not introduce a separate compose-only deploy mode.
@@ -61,3 +61,4 @@ This wrapper must not export `NEXT_PUBLIC_AUTH_URL`. Current upstream LobeHub im
 - This replaces the previous Better Auth email/password allowlist baseline because acceptance requires no second LobeHub login after root-domain login.
 - `AUTH_GENERIC_OIDC_SECRET` must match the root proxy `HZ_OIDC_CLIENT_SECRET`; it is a real secret and stays out of docs/examples.
 - Root-domain user expansion should happen in the root login/OIDC layer first, then flow into LobeHub via claims. Do not create a parallel LobeHub-local account system for new users.
+- In this OIDC-only deployment, `AUTH_ALLOWED_EMAILS` should stay empty. The root-domain user store is now the single source of truth, and keeping a second Better Auth allowlist causes member-account drift such as `EMAIL_NOT_ALLOWED` after root-domain provisioning.
