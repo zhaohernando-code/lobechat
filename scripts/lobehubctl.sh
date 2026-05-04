@@ -239,6 +239,13 @@ case "${1:-help}" in
     require_env
     compose up -d
     ;;
+  recreate-lobe)
+    require_env
+    compose up -d --force-recreate lobe
+    ;;
+  health)
+    "$ROOT_DIR/scripts/check-release-health.sh"
+    ;;
   down)
     require_env
     compose down
@@ -282,6 +289,8 @@ Commands:
   config       Validate Docker Compose config
   pull         Pull infra images (does not overwrite the local custom LobeHub image)
   up           Start services
+  recreate-lobe Recreate only the LobeHub app container
+  health       Validate local route and root-domain OIDC sign-in bootstrap
   down         Stop services
   restart      Restart services
   ps           Show service status

@@ -104,3 +104,11 @@ docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 curl -I http://127.0.0.1:3210/
 curl -I https://hernando-zhao.cn/chat/
 ```
+
+发布态健康检查不能只看首页是否有响应，还要覆盖根域 OIDC 登录桥接：
+
+```bash
+~/codex/runtime/projects/lobechat/scripts/lobehubctl.sh health
+```
+
+该检查会确认 `deploy/.env` 中 `APP_URL=https://hernando-zhao.cn`、`AUTH_DISABLE_EMAIL_PASSWORD=1`、`AUTH_SSO_PROVIDERS=generic-oidc`、`AUTH_GENERIC_OIDC_ID=lobehub`、`AUTH_GENERIC_OIDC_SECRET` 非空、`AUTH_GENERIC_OIDC_ISSUER=https://hernando-zhao.cn`，并 POST 本地 `/api/auth/sign-in/oauth2`，要求返回根域 `/oidc/authorize`。如果健康检查失败，watch 会重建 `lobe` 容器，让已经修正的 runtime auth/env 变更立即生效。

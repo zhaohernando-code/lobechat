@@ -53,6 +53,10 @@ probe_local_url() {
   curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1
 }
 
+probe_release_health() {
+  "$REPO_ROOT/scripts/lobehubctl.sh" health >/dev/null 2>&1
+}
+
 wait_for_docker
 ensure_stack
 
@@ -61,6 +65,10 @@ while true; do
     log "Local LobeHub probe failed on 127.0.0.1:${PORT}; restarting Compose stack."
     wait_for_docker
     ensure_stack || true
+  elif ! probe_release_health; then
+    log "LobeHub release health failed; recreating app container so runtime auth/env changes take effect."
+    wait_for_docker
+    "$REPO_ROOT/scripts/lobehubctl.sh" recreate-lobe || true
   fi
   sleep 30
 done
