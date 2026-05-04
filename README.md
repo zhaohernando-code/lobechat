@@ -80,7 +80,9 @@ USE_CN_MIRROR=true
 
 ## Runtime watch
 
-`com.codex.lobechat.frontend` points at `~/codex/runtime/projects/lobechat/scripts/start-local-frontend.sh` and must remain loaded with `RunAtLoad` + `KeepAlive`. The script starts Docker Desktop when the Docker daemon is unavailable, waits for Compose to become usable, starts the stack, and re-runs `scripts/lobehubctl.sh up` whenever `http://127.0.0.1:3210/` fails.
+`com.codex.lobechat.frontend` points at `~/codex/projects/lobechat/scripts/start-local-frontend.sh` and must remain loaded with `RunAtLoad` + `KeepAlive`. The script starts Docker Desktop when the Docker daemon is unavailable, waits for Compose to become usable, starts the stack, and re-runs `scripts/lobehubctl.sh up` whenever `http://127.0.0.1:3210/` fails.
+
+LobeHub has one persistent local data root: `~/codex/projects/lobechat/data`, exposed to Compose through `LOBE_DATA_DIR`. Do not run a second data root from `~/codex/runtime/projects/lobechat`; the helper script redirects accidental runtime calls back to the canonical project path.
 
 The deploy profile must keep `restartLaunchAgents` and `healthChecks` aligned with that LaunchAgent and local port, otherwise a publish can appear successful without proving the watched release route is actually serving.
 

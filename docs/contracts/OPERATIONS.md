@@ -14,6 +14,14 @@ scripts/lobehubctl.sh ps
 
 首次启动前，`deploy/.env` 里至少要替换 `POSTGRES_PASSWORD`、`AUTH_SECRET`、`KEY_VAULTS_SECRET`、`RUSTFS_SECRET_KEY`，并确认 `AUTH_GENERIC_OIDC_SECRET` 与服务器入口层 `HZ_OIDC_CLIENT_SECRET` 一致。真实值不能写入 `.env.example` 或文档。
 
+持久化数据根固定为：
+
+```bash
+/Users/hernando_zhao/codex/projects/lobechat/data
+```
+
+`scripts/lobehubctl.sh` 会默认导出 `LOBE_DATA_DIR` 指向这个目录，Compose 的 PostgreSQL、Redis、RustFS volume 都必须从这里挂载。不要从 `~/codex/runtime/projects/lobechat/data` 或 worker worktree 启动第二份数据根。
+
 一期账号配置必须保持根域 OIDC 桥接：
 
 ```env
@@ -91,7 +99,7 @@ scripts/lobehubctl.sh up
 长期运行由 LaunchAgent `com.codex.lobechat.frontend` 管理，入口脚本固定为：
 
 ```bash
-~/codex/runtime/projects/lobechat/scripts/start-local-frontend.sh
+~/codex/projects/lobechat/scripts/start-local-frontend.sh
 ```
 
 该脚本必须在后台 LaunchAgent 环境中自行设置 Docker CLI 的 `PATH`，并在 Docker daemon 不可用时主动执行 `open -g -a Docker`。只等待 `docker info` 不足以恢复 `/chat`，因为 Docker Desktop 退出后 Compose 的 `restart: unless-stopped` 不会有机会执行。
@@ -108,7 +116,7 @@ curl -I https://hernando-zhao.cn/chat/
 发布态健康检查不能只看首页是否有响应，还要覆盖根域 OIDC 登录桥接：
 
 ```bash
-~/codex/runtime/projects/lobechat/scripts/lobehubctl.sh health
+~/codex/projects/lobechat/scripts/lobehubctl.sh health
 ```
 
 该检查会确认 `deploy/.env` 中 `APP_URL=https://hernando-zhao.cn`、`AUTH_DISABLE_EMAIL_PASSWORD=1`、`AUTH_SSO_PROVIDERS=generic-oidc`、`AUTH_GENERIC_OIDC_ID=lobehub`、`AUTH_GENERIC_OIDC_SECRET` 非空、`AUTH_GENERIC_OIDC_ISSUER=https://hernando-zhao.cn`，并 POST 本地 `/api/auth/sign-in/oauth2`，要求返回根域 `/oidc/authorize`。如果健康检查失败，watch 会重建 `lobe` 容器，让已经修正的 runtime auth/env 变更立即生效。

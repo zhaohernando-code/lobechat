@@ -2,9 +2,21 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CACHED_HOME="${HOME:-/Users/hernando_zhao}"
+DEFAULT_CANONICAL_ROOT="$CACHED_HOME/codex/projects/lobechat"
+RUNTIME_ROOT="$CACHED_HOME/codex/runtime/projects/lobechat"
+CANONICAL_ROOT="${LOBEHUB_CANONICAL_ROOT:-$DEFAULT_CANONICAL_ROOT}"
+
+if [[ "${LOBEHUB_ALLOW_RUNTIME_ROOT:-0}" != "1" &&
+  "$ROOT_DIR" == "$RUNTIME_ROOT" &&
+  -x "$CANONICAL_ROOT/scripts/lobehubctl.sh" ]]; then
+  exec "$CANONICAL_ROOT/scripts/lobehubctl.sh" "$@"
+fi
+
 COMPOSE_FILE="$ROOT_DIR/deploy/docker-compose.yml"
 ENV_FILE="$ROOT_DIR/deploy/.env"
-BACKUP_DIR="$ROOT_DIR/backups"
+export LOBE_DATA_DIR="${LOBE_DATA_DIR:-$CANONICAL_ROOT/data}"
+BACKUP_DIR="${LOBE_BACKUP_DIR:-$ROOT_DIR/backups}"
 CACHE_DIR="$ROOT_DIR/.cache/lobehub-upstream"
 
 compose() {

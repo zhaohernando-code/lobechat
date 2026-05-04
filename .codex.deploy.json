@@ -2,14 +2,14 @@
   "mode": "local_runtime_service",
   "projectId": "lobechat",
   "sourcePath": "$HOME/codex/projects/lobechat",
-  "runtimeTargetPath": "$HOME/codex/runtime/projects/lobechat",
+  "runtimeTargetPath": "$HOME/codex/projects/lobechat",
   "preservePaths": [
     "data",
     "backups",
     "deploy/.env"
   ],
   "postSyncCommands": [
-    "mkdir -p data/postgresql data/redis data/rustfs backups",
+    "mkdir -p $HOME/codex/projects/lobechat/data/postgresql $HOME/codex/projects/lobechat/data/redis $HOME/codex/projects/lobechat/data/rustfs backups",
     "if [ -f deploy/.env ]; then scripts/lobehubctl.sh config; else echo 'Skipping compose validation: deploy/.env is not present yet.'; fi"
   ],
   "restartLaunchAgents": [

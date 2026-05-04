@@ -2,6 +2,10 @@
 
 ## 2026-05-05
 
+- Problem: after restarting the release stack, the app showed only a `hz-root` LobeHub user and the three manually configured DeepSeek API keys looked missing.
+- Resolution: the keys were still present in the canonical PostgreSQL data directory, but the runtime checkout had started Compose from a different relative bind mount and created/used `~/codex/runtime/projects/lobechat/data/postgresql`. The runtime data directory was backed up, canonical `data/` was restored to the served path, and the wrapper now uses explicit `LOBE_DATA_DIR=/Users/hernando_zhao/codex/projects/lobechat/data` for PostgreSQL, Redis, and RustFS.
+- Prevention: never let the active LobeHub stack depend on checkout-relative `../data` paths. The LaunchAgent and deploy profile must point at the canonical project entrypoint, and accidental runtime helper calls must redirect to canonical before running Compose.
+
 - Problem: `https://hernando-zhao.cn/chat/` returned `connect ECONNREFUSED 127.0.0.1:3210` even though `com.codex.lobechat.frontend` was loaded and running.
 - Resolution: Docker Desktop was stopped, so no Compose container could bind 3210. Starting Docker Desktop let Docker's restart policies and the frontend LaunchAgent bring `lobehub-app` back. The watch script now sets a LaunchAgent-safe `PATH`, actively starts Docker Desktop when `docker info` fails, and re-enters the Compose/probe loop after local probe failures.
 - Prevention: for Docker-backed release routes, a watch that only waits for Docker is incomplete. It must own Docker Desktop startup, emit enough logs to show which layer is unavailable, and the deploy profile must include the real LaunchAgent plus the public route's local health check port.

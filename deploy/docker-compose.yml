@@ -72,7 +72,7 @@ services:
       POSTGRES_DB: ${LOBE_DB_NAME:-lobechat}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - ../data/postgresql:/var/lib/postgresql/data
+      - ${LOBE_DATA_DIR:-/Users/hernando_zhao/codex/projects/lobechat/data}/postgresql:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d ${LOBE_DB_NAME:-lobechat}"]
       interval: 10s
@@ -89,7 +89,7 @@ services:
     ports:
       - "127.0.0.1:${REDIS_PORT:-63790}:6379"
     volumes:
-      - ../data/redis:/data
+      - ${LOBE_DATA_DIR:-/Users/hernando_zhao/codex/projects/lobechat/data}/redis:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -110,7 +110,7 @@ services:
       RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
       RUSTFS_CONSOLE_ENABLE: "true"
     volumes:
-      - ../data/rustfs:/data
+      - ${LOBE_DATA_DIR:-/Users/hernando_zhao/codex/projects/lobechat/data}/rustfs:/data
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:9000/health >/dev/null 2>&1 || exit 1"]
       interval: 5s
