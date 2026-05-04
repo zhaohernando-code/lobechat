@@ -27,7 +27,7 @@
 - `deploy/.env.example`：不含真实密钥的环境变量模板。
 - `.codex.deploy.json`：控制面支持的 `local_runtime_service` 发布配置；用于同步包装层、保留本机数据/密钥，并在存在 `deploy/.env` 时校验 Compose。
 - `scripts/lobehubctl.sh`：本机构建、启动、停止、日志、备份、校验入口。
-- `scripts/start-local-frontend.sh`：控制面本机运行探针使用的前台服务守护脚本；负责等待 Docker 并确保 LobeHub Compose 栈启动。
+- `scripts/start-local-frontend.sh`：控制面本机运行探针使用的前台服务守护脚本；负责拉起/等待 Docker Desktop，并确保 LobeHub Compose 栈启动。
 - `docs/contracts/BASELINE.md`：官方能力与一期边界。
 - `docs/contracts/ROUTING.md`：`/chat` 子路径和反向代理适配说明。
 - `docs/contracts/AUTH.md`：根域 OIDC 桥接、预置账号和禁注册策略。
@@ -77,6 +77,12 @@ USE_CN_MIRROR=true
 - 这个开关只影响 `build-image` 阶段，不改变运行时 provider API 地址。
 - 上游 Dockerfile 在 `USE_CN_MIRROR=true` 时会切到 `https://registry.npmmirror.com/`，并同步切换 `sentry-cli`、`canvas` 下载镜像。
 - 如果你本机还有额外代理要求，继续配合 `HTTP_PROXY`、`HTTPS_PROXY`、`NO_PROXY` 使用，不要把 provider 的代理地址和构建镜像源混为一类。
+
+## Runtime watch
+
+`com.codex.lobechat.frontend` points at `~/codex/runtime/projects/lobechat/scripts/start-local-frontend.sh` and must remain loaded with `RunAtLoad` + `KeepAlive`. The script starts Docker Desktop when the Docker daemon is unavailable, waits for Compose to become usable, starts the stack, and re-runs `scripts/lobehubctl.sh up` whenever `http://127.0.0.1:3210/` fails.
+
+The deploy profile must keep `restartLaunchAgents` and `healthChecks` aligned with that LaunchAgent and local port, otherwise a publish can appear successful without proving the watched release route is actually serving.
 
 ## Task closeout
 

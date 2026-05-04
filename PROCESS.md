@@ -1,5 +1,11 @@
 # PROCESS
 
+## 2026-05-05
+
+- Problem: `https://hernando-zhao.cn/chat/` returned `connect ECONNREFUSED 127.0.0.1:3210` even though `com.codex.lobechat.frontend` was loaded and running.
+- Resolution: Docker Desktop was stopped, so no Compose container could bind 3210. Starting Docker Desktop let Docker's restart policies and the frontend LaunchAgent bring `lobehub-app` back. The watch script now sets a LaunchAgent-safe `PATH`, actively starts Docker Desktop when `docker info` fails, and re-enters the Compose/probe loop after local probe failures.
+- Prevention: for Docker-backed release routes, a watch that only waits for Docker is incomplete. It must own Docker Desktop startup, emit enough logs to show which layer is unavailable, and the deploy profile must include the real LaunchAgent plus the public route's local health check port.
+
 ## 2026-05-02
 
 - Problem: LobeChat 界面报告网络搜索不可用。日志显示 SearXNG search API 持续返回 403 Forbidden，而 HTML 格式搜索正常。

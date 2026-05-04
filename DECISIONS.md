@@ -1,5 +1,13 @@
 # LobeChat Deployment Decisions
 
+[2026-05-05T00:25:30+08:00] Release watch recovery decision:
+The `/chat` release watch must be able to recover from Docker Desktop being stopped, not only from the LobeHub container being down. `com.codex.lobechat.frontend` stays the long-running LaunchAgent, but its `start-local-frontend.sh` entrypoint now owns three recovery steps: set a LaunchAgent-safe Docker CLI `PATH`, start Docker Desktop with `open -g -a Docker` when `docker info` is unavailable, and then run the Compose stack plus the 3210 probe loop.
+
+补充说明
+- The incident cause was not a missing LaunchAgent: `com.codex.lobechat.frontend` was still running, but it was silently stuck waiting for Docker while `127.0.0.1:3210` had no listener.
+- Compose `restart: unless-stopped` only helps after Docker daemon is running. It cannot revive containers while Docker Desktop itself is stopped.
+- `.codex.deploy.json` now targets the actual runtime checkout `~/codex/runtime/projects/lobechat`, restarts `com.codex.lobechat.frontend`, and verifies `http://127.0.0.1:3210/` so future release publishes cannot skip the watched local route check.
+
 [2026-04-28T23:05:00+08:00] Root-domain managed-user decision:
 The root-domain identity source for `/chat` is now a small managed internal user store rather than a single hardcoded login. `root` remains the only administrator, while normal internal users are `member` accounts created or reset only through the root-domain account-management surface.
 

@@ -2,7 +2,7 @@
   "mode": "local_runtime_service",
   "projectId": "lobechat",
   "sourcePath": "$HOME/codex/projects/lobechat",
-  "runtimeTargetPath": "$HOME/codex/projects/lobechat",
+  "runtimeTargetPath": "$HOME/codex/runtime/projects/lobechat",
   "preservePaths": [
     "data",
     "backups",
@@ -12,7 +12,13 @@
     "mkdir -p data/postgresql data/redis data/rustfs backups",
     "if [ -f deploy/.env ]; then scripts/lobehubctl.sh config; else echo 'Skipping compose validation: deploy/.env is not present yet.'; fi"
   ],
-  "healthChecks": [],
+  "restartLaunchAgents": [
+    "com.codex.lobechat.frontend"
+  ],
+  "healthChecks": [
+    "http://127.0.0.1:3210/"
+  ],
+  "healthCheckTimeoutMs": 60000,
   "runtime": {
     "type": "docker_compose",
     "composeFile": "deploy/docker-compose.yml",

@@ -85,3 +85,22 @@ scripts/lobehubctl.sh up
 - 端口 `3210/54329/63790/9000/9001` 不能被占用。
 - 服务器入口层到本机的隧道/代理必须持续在线。
 - 证书续期在服务器入口层完成，不由本项目处理。
+
+## 自动恢复 watch
+
+长期运行由 LaunchAgent `com.codex.lobechat.frontend` 管理，入口脚本固定为：
+
+```bash
+~/codex/runtime/projects/lobechat/scripts/start-local-frontend.sh
+```
+
+该脚本必须在后台 LaunchAgent 环境中自行设置 Docker CLI 的 `PATH`，并在 Docker daemon 不可用时主动执行 `open -g -a Docker`。只等待 `docker info` 不足以恢复 `/chat`，因为 Docker Desktop 退出后 Compose 的 `restart: unless-stopped` 不会有机会执行。
+
+恢复检查：
+
+```bash
+launchctl print gui/$(id -u)/com.codex.lobechat.frontend
+docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+curl -I http://127.0.0.1:3210/
+curl -I https://hernando-zhao.cn/chat/
+```
