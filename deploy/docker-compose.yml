@@ -144,6 +144,8 @@ services:
     image: searxng/searxng:latest
     container_name: lobehub-searxng
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:${SEARXNG_PORT:-18080}:8080"
     volumes:
       - ./searxng-settings.yml:/etc/searxng/settings.yml:ro
     environment:

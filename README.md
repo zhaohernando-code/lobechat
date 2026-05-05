@@ -52,6 +52,7 @@ scripts/lobehubctl.sh up
 默认只监听本机回环端口：
 
 - LobeHub: `http://127.0.0.1:3210`
+- SearXNG JSON API: `http://127.0.0.1:18080`
 - RustFS API: `http://127.0.0.1:9000`
 - RustFS Console: `http://127.0.0.1:9001`
 
