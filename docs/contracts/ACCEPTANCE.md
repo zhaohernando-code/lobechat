@@ -5,6 +5,7 @@
 - `scripts/lobehubctl.sh config` 通过。
 - `scripts/lobehubctl.sh up` 后 `lobe`、`postgresql`、`redis`、`rustfs` 均为 running/healthy。
 - `http://127.0.0.1:3210` 可访问。
+- `http://127.0.0.1:18080/search?q=health-check&format=json` 返回有效 JSON。
 - `https://hernando-zhao.cn/chat` 可访问，且 `/chat` 会规范化到 `/chat/`。
 - 根域统一登录后，`/chat/` 必须自动完成 OIDC 桥接并进入 LobeHub 会话页面；不得停留在“登录或注册你的 LobeHub 账号”的二次登录页。
 - LobeHub 生成的 root-scoped `/signin`、`/_next/*` 和上下文型 `/api/*` 请求必须被正确归属到 `/chat` 隧道，不能和根站控制面冲突。
@@ -33,6 +34,7 @@
 - Gemini 至少一个模型可完成普通对话。
 - DeepSeek `deepseek-chat` 或 `deepseek-reasoner` 至少一个模型可完成普通对话。
 - 密钥错误、模型错误、网络错误能在 UI 或日志中定位到供应商边界。
+- Web search 必须能通过 LobeHub 调到本地 `SearXNG` JSON API，而不是只剩首页和模型对话可用。
 
 ## 子路径
 
@@ -47,4 +49,5 @@
 - `scripts/lobehubctl.sh backup` 能产出 SQL 和数据归档。
 - 停服务后重启，消息历史仍存在。
 - Docker Desktop 重启后服务可恢复。
+- `SearXNG` 单独失效时，watch 能恢复 `127.0.0.1:18080`，不需要手工重建整个栈。
 - 升级前有备份，升级失败可回滚镜像 tag 或恢复数据库。

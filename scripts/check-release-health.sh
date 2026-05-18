@@ -4,12 +4,26 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$ROOT_DIR/deploy/.env"
 PORT="${LOBE_PORT:-3210}"
+SEARXNG_PORT="${SEARXNG_PORT:-18080}"
 EXPECTED_APP_URL="${LOBE_EXPECTED_APP_URL:-https://hernando-zhao.cn}"
 EXPECTED_OIDC_ISSUER="${LOBE_EXPECTED_OIDC_ISSUER:-https://hernando-zhao.cn}"
+MODE="${1:-full}"
 
 fail() {
   echo "LobeChat release health failed: $*" >&2
   exit 1
+}
+
+check_search_health() {
+  local search_response
+  search_response="$(
+    curl -fsS \
+      "http://127.0.0.1:${SEARXNG_PORT}/search?q=health-check&format=json"
+  )" || fail "SearXNG JSON API is not reachable on 127.0.0.1:${SEARXNG_PORT}"
+
+  if [[ "$search_response" != *'"results"'* ]]; then
+    fail "SearXNG JSON API returned an unexpected payload"
+  fi
 }
 
 require_env_value() {
@@ -25,6 +39,20 @@ require_env_value() {
     fail "$name is '$value', expected '$expected'"
   fi
 }
+
+case "$MODE" in
+  full|search)
+    ;;
+  *)
+    fail "unsupported mode '$MODE'; expected 'full' or 'search'"
+    ;;
+esac
+
+if [[ "$MODE" == "search" ]]; then
+  check_search_health
+  echo "LobeChat search health OK"
+  exit 0
+fi
 
 if [[ ! -f "$ENV_FILE" ]]; then
   fail "missing $ENV_FILE"
@@ -57,5 +85,7 @@ auth_response="$(
 if [[ "$auth_response" != *'"redirect":true'* || "$auth_response" != *'/oidc/authorize'* ]]; then
   fail "Better Auth generic-oidc sign-in endpoint did not return an OIDC redirect"
 fi
+
+check_search_health
 
 echo "LobeChat release health OK"

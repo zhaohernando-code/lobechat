@@ -1,5 +1,11 @@
 # PROCESS
 
+## 2026-05-18
+
+- Problem: web search could fail silently even while `/chat` still looked healthy because the release watch only probed port `3210` and the OIDC bootstrap. `SearXNG` on `127.0.0.1:18080` could die or drift without any self-healing, and the watch would keep treating the stack as healthy or repeatedly recreate only `lobe`.
+- Resolution: `scripts/check-release-health.sh` now validates the loopback `SearXNG` JSON API, `scripts/lobehubctl.sh` exposes `health-search` and `recreate-search`, and `scripts/start-local-frontend.sh` recovers search failures by recreating `searxng` separately from `lobe`.
+- Prevention: for mounted apps that depend on sidecar services, homepage reachability is not enough. Health checks and self-healing must cover every user-visible dependency boundary with the same protocol the real consumer uses, here `format=json` on the SearXNG API.
+
 ## 2026-05-05
 
 - Problem: stock-dashboard shortpick experiments need a clean, automatable search substrate for DeepSeek because the official DeepSeek API does not expose web search.

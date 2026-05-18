@@ -1,5 +1,13 @@
 # LobeChat Deployment Decisions
 
+[2026-05-18T21:10:00+08:00] Search-health coverage decision:
+For this wrapper, web search health is a first-class release signal, not an optional sidecar behind the `/chat` homepage probe. The LaunchAgent watch and `scripts/check-release-health.sh` must treat the loopback SearXNG JSON API on `127.0.0.1:18080` as part of release health, and search-only recovery must target `searxng` directly instead of repeatedly recreating `lobe`.
+
+补充说明
+- A healthy `http://127.0.0.1:3210/` homepage does not prove that LobeHub web search is usable; the app can stay reachable while `SearXNG` has failed or drifted.
+- `scripts/lobehubctl.sh` now exposes `health-search` so operators can isolate search regressions from auth/app regressions.
+- Search consumers such as stock-dashboard depend on the JSON API specifically, so the health probe must hit `format=json`, not only the human HTML page.
+
 [2026-05-05T01:28:14+08:00] Single canonical data-root decision:
 LobeHub now has exactly one local persistent data root: `/Users/hernando_zhao/codex/projects/lobechat/data`. Compose mounts PostgreSQL, Redis, and RustFS through `LOBE_DATA_DIR` instead of relative `../data/*` paths, and the LaunchAgent must start the canonical project entrypoint rather than the runtime copy.
 

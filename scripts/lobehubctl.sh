@@ -255,8 +255,15 @@ case "${1:-help}" in
     require_env
     compose up -d --force-recreate lobe
     ;;
+  recreate-search)
+    require_env
+    compose up -d --force-recreate searxng
+    ;;
   health)
     "$ROOT_DIR/scripts/check-release-health.sh"
+    ;;
+  health-search)
+    "$ROOT_DIR/scripts/check-release-health.sh" search
     ;;
   down)
     require_env
@@ -302,7 +309,9 @@ Commands:
   pull         Pull infra images (does not overwrite the local custom LobeHub image)
   up           Start services
   recreate-lobe Recreate only the LobeHub app container
-  health       Validate local route and root-domain OIDC sign-in bootstrap
+  recreate-search Recreate only the SearXNG search container
+  health       Validate local route, root-domain OIDC sign-in bootstrap, and SearXNG JSON API
+  health-search Validate the local SearXNG JSON API
   down         Stop services
   restart      Restart services
   ps           Show service status

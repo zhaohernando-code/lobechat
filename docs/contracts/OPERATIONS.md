@@ -110,13 +110,15 @@ scripts/lobehubctl.sh up
 launchctl print gui/$(id -u)/com.codex.lobechat.frontend
 docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 curl -I http://127.0.0.1:3210/
+curl -fsS "http://127.0.0.1:18080/search?q=health-check&format=json" | head
 curl -I https://hernando-zhao.cn/chat/
 ```
 
-发布态健康检查不能只看首页是否有响应，还要覆盖根域 OIDC 登录桥接：
+发布态健康检查不能只看首页是否有响应，还要覆盖根域 OIDC 登录桥接和本地 SearXNG JSON API：
 
 ```bash
 ~/codex/projects/lobechat/scripts/lobehubctl.sh health
+~/codex/projects/lobechat/scripts/lobehubctl.sh health-search
 ```
 
-该检查会确认 `deploy/.env` 中 `APP_URL=https://hernando-zhao.cn`、`AUTH_DISABLE_EMAIL_PASSWORD=1`、`AUTH_SSO_PROVIDERS=generic-oidc`、`AUTH_GENERIC_OIDC_ID=lobehub`、`AUTH_GENERIC_OIDC_SECRET` 非空、`AUTH_GENERIC_OIDC_ISSUER=https://hernando-zhao.cn`，并 POST 本地 `/api/auth/sign-in/oauth2`，要求返回根域 `/oidc/authorize`。如果健康检查失败，watch 会重建 `lobe` 容器，让已经修正的 runtime auth/env 变更立即生效。
+`health` 会确认 `deploy/.env` 中 `APP_URL=https://hernando-zhao.cn`、`AUTH_DISABLE_EMAIL_PASSWORD=1`、`AUTH_SSO_PROVIDERS=generic-oidc`、`AUTH_GENERIC_OIDC_ID=lobehub`、`AUTH_GENERIC_OIDC_SECRET` 非空、`AUTH_GENERIC_OIDC_ISSUER=https://hernando-zhao.cn`，并 POST 本地 `/api/auth/sign-in/oauth2`，要求返回根域 `/oidc/authorize`，同时要求 `127.0.0.1:18080/search?...&format=json` 返回 JSON 结果。`health-search` 只探测搜索 API，方便把 web-search 退化和 `/chat` 首页故障分开定位。如果搜索健康检查失败，watch 会重建 `searxng` 容器；如果 OIDC/app 健康检查失败，watch 会重建 `lobe` 容器。

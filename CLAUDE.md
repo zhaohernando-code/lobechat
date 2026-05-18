@@ -12,6 +12,8 @@ bash scripts/lobehubctl.sh down      # 停止
 bash scripts/lobehubctl.sh logs      # 日志
 bash scripts/lobehubctl.sh backup    # 备份
 bash scripts/lobehubctl.sh config    # 配置验证
+bash scripts/lobehubctl.sh health    # 应用 + OIDC + search 健康检查
+bash scripts/lobehubctl.sh health-search # 仅搜索健康检查
 ```
 
 ## 已知陷阱

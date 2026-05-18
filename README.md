@@ -81,7 +81,7 @@ USE_CN_MIRROR=true
 
 ## Runtime watch
 
-`com.codex.lobechat.frontend` points at `~/codex/projects/lobechat/scripts/start-local-frontend.sh` and must remain loaded with `RunAtLoad` + `KeepAlive`. The script starts Docker Desktop when the Docker daemon is unavailable, waits for Compose to become usable, starts the stack, and re-runs `scripts/lobehubctl.sh up` whenever `http://127.0.0.1:3210/` fails.
+`com.codex.lobechat.frontend` points at `~/codex/projects/lobechat/scripts/start-local-frontend.sh` and must remain loaded with `RunAtLoad` + `KeepAlive`. The script starts Docker Desktop when the Docker daemon is unavailable, waits for Compose to become usable, starts the stack, re-runs `scripts/lobehubctl.sh up` whenever `http://127.0.0.1:3210/` fails, recreates `lobe` when the auth/OIDC release health check fails, and recreates `searxng` when the loopback JSON search API on `127.0.0.1:18080` fails.
 
 LobeHub has one persistent local data root: `~/codex/projects/lobechat/data`, exposed to Compose through `LOBE_DATA_DIR`. Do not run a second data root from `~/codex/runtime/projects/lobechat`; the helper script redirects accidental runtime calls back to the canonical project path.
 
