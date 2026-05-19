@@ -18,12 +18,23 @@ check_search_health() {
   local search_response
   search_response="$(
     curl -fsS \
-      "http://127.0.0.1:${SEARXNG_PORT}/search?q=health-check&format=json"
+      "http://127.0.0.1:${SEARXNG_PORT}/search?q=openai&format=json"
   )" || fail "SearXNG JSON API is not reachable on 127.0.0.1:${SEARXNG_PORT}"
 
-  if [[ "$search_response" != *'"results"'* ]]; then
-    fail "SearXNG JSON API returned an unexpected payload"
-  fi
+  SEARCH_RESPONSE="$search_response" python3 - <<'PY' || fail "SearXNG JSON API returned no usable search results"
+import json
+import os
+import sys
+
+try:
+    payload = json.loads(os.environ.get("SEARCH_RESPONSE", ""))
+except json.JSONDecodeError:
+    sys.exit(1)
+
+results = payload.get("results")
+if not isinstance(results, list) or len(results) == 0:
+    sys.exit(1)
+PY
 }
 
 require_env_value() {

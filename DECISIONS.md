@@ -1,5 +1,12 @@
 # LobeChat Deployment Decisions
 
+[2026-05-19T09:38:38+08:00] SearXNG outbound proxy decision:
+The local SearXNG sidecar must route outbound search-engine requests through the Mac host proxy. In the current network, host curl succeeds only with the local proxy and direct outbound requests time out; SearXNG returning a syntactically valid JSON payload with zero results is not a usable web-search signal.
+
+补充说明
+- `scripts/check-release-health.sh health-search` now requires at least one result for a normal query instead of only checking that the JSON response has a `results` field.
+- The SearXNG settings use Docker Desktop's `host.docker.internal:17890` HTTP proxy endpoint so the container can reach the same local proxy that the host shell uses.
+
 [2026-05-18T21:10:00+08:00] Search-health coverage decision:
 For this wrapper, web search health is a first-class release signal, not an optional sidecar behind the `/chat` homepage probe. The LaunchAgent watch and `scripts/check-release-health.sh` must treat the loopback SearXNG JSON API on `127.0.0.1:18080` as part of release health, and search-only recovery must target `searxng` directly instead of repeatedly recreating `lobe`.
 

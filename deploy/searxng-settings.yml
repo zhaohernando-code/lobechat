@@ -16,3 +16,8 @@ search:
 ui:
   static_use_hash: true
 
+outgoing:
+  extra_proxy_timeout: 10.0
+  proxies:
+    all://:
+      - http://host.docker.internal:17890

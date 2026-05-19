@@ -1,5 +1,11 @@
 # PROCESS
 
+## 2026-05-19
+
+- Problem: `SearXNG` returned HTTP 200 JSON for `format=json` but every normal query had `results: []` and engines reported timeout or access-denied failures. Host networking confirmed the same search engine timed out without proxy and succeeded with the local proxy.
+- Resolution: route SearXNG outbound requests through the Mac host proxy and make `health-search` require at least one real result for a normal query.
+- Prevention: a search health check must validate usable results, not only JSON shape. For containerized search sidecars on this Mac, keep the host proxy path explicit rather than relying on LaunchAgent environment inheritance.
+
 ## 2026-05-18
 
 - Problem: web search could fail silently even while `/chat` still looked healthy because the release watch only probed port `3210` and the OIDC bootstrap. `SearXNG` on `127.0.0.1:18080` could die or drift without any self-healing, and the watch would keep treating the stack as healthy or repeatedly recreate only `lobe`.
