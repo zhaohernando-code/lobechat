@@ -21,3 +21,21 @@ outgoing:
   proxies:
     all://:
       - http://host.docker.internal:17890
+
+engines:
+  - name: bing
+    disabled: false
+  - name: mojeek
+    disabled: false
+  - name: brave
+    disabled: true
+  - name: duckduckgo
+    disabled: true
+  - name: google
+    disabled: true
+  - name: karmasearch
+    disabled: true
+  - name: karmasearch videos
+    disabled: true
+  - name: startpage
+    disabled: true
