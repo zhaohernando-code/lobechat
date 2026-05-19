@@ -1,5 +1,14 @@
 # LobeChat Deployment Decisions
 
+[2026-05-19T10:20:00+08:00] Browserless crawl and Chinese search decision:
+The local LobeHub stack must provide its own Browserless sidecar for web-page crawl and must include Chinese-capable SearXNG engines in the default search set. LobeHub's browserless crawler errors when both `BROWSERLESS_URL` and `BROWSERLESS_TOKEN` are absent, and Bing-only SearXNG results can misread Chinese finance queries such as `A股 上证指数`.
+
+补充说明
+- Compose now runs `lobehub-browserless` on loopback `127.0.0.1:13000` and passes `BROWSERLESS_URL=http://browserless:3000` plus a local token into `lobe`.
+- `CRAWLER_IMPLS=browserless,naive` keeps the rendered-page crawler first while preserving the built-in fallback for simple pages.
+- SearXNG now enables `baidu`, `360search`, and `google` for Chinese coverage, keeps `bing` for English/general coverage, and disables `mojeek` because it consistently returns access-denied in this network.
+- Release health must prove three user-visible boundaries: English search, Chinese finance search, and Browserless `/content` crawl.
+
 [2026-05-19T09:38:38+08:00] SearXNG outbound proxy decision:
 The local SearXNG sidecar must route outbound search-engine requests through the Mac host proxy. In the current network, host curl succeeds only with the local proxy and direct outbound requests time out; SearXNG returning a syntactically valid JSON payload with zero results is not a usable web-search signal.
 

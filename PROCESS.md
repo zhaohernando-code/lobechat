@@ -2,6 +2,10 @@
 
 ## 2026-05-19
 
+- Problem: Lobe AI reported that English search worked, but Chinese finance queries such as `A股 上证指数` returned dictionary/letter-style results, and page crawl still failed because Browserless variables were absent.
+- Resolution: add a local Browserless sidecar and pass the crawler variables into `lobe`; enable SearXNG `baidu`, `360search`, and `google` for Chinese finance coverage, keep `bing` for general/English coverage, and disable the access-denied `mojeek` engine.
+- Prevention: search health must cover representative multilingual queries, not only an English smoke query. Crawl health must hit the same Browserless `/content` endpoint that LobeHub uses, otherwise a working search list can hide broken page-reading.
+
 - Problem: `SearXNG` returned HTTP 200 JSON for `format=json` but every normal query had `results: []` and engines reported timeout or access-denied failures. Host networking confirmed the same search engine timed out without proxy and succeeded with the local proxy.
 - Resolution: route SearXNG outbound requests through the Mac host proxy and make `health-search` require at least one real result for a normal query.
 - Prevention: a search health check must validate usable results, not only JSON shape. For containerized search sidecars on this Mac, keep the host proxy path explicit rather than relying on LaunchAgent environment inheritance.

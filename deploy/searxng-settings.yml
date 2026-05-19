@@ -23,15 +23,19 @@ outgoing:
       - http://host.docker.internal:17890
 
 engines:
+  - name: baidu
+    disabled: false
+  - name: 360search
+    disabled: false
+  - name: google
+    disabled: false
   - name: bing
     disabled: false
   - name: mojeek
-    disabled: false
+    disabled: true
   - name: brave
     disabled: true
   - name: duckduckgo
-    disabled: true
-  - name: google
     disabled: true
   - name: karmasearch
     disabled: true

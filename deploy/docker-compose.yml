@@ -16,6 +16,8 @@ services:
         condition: service_completed_successfully
       searxng:
         condition: service_started
+      browserless:
+        condition: service_started
     ports:
       - "127.0.0.1:${LOBE_PORT:-3210}:3210"
     environment:
@@ -45,7 +47,15 @@ services:
       S3_ENABLE_PATH_STYLE: "1"
       S3_SET_ACL: "0"
       LLM_VISION_IMAGE_USE_BASE64: "1"
+      SEARCH_PROVIDERS: ${SEARCH_PROVIDERS:-searxng}
       SEARXNG_URL: http://searxng:8080
+      CRAWLER_IMPLS: ${CRAWLER_IMPLS:-browserless,naive}
+      CRAWL_CONCURRENCY: ${CRAWL_CONCURRENCY:-1}
+      CRAWLER_RETRY: ${CRAWLER_RETRY:-1}
+      BROWSERLESS_URL: ${BROWSERLESS_URL:-http://browserless:3000}
+      BROWSERLESS_TOKEN: ${BROWSERLESS_TOKEN:-lobehub-local-browserless}
+      BROWSERLESS_BLOCK_ADS: ${BROWSERLESS_BLOCK_ADS:-1}
+      BROWSERLESS_STEALTH_MODE: ${BROWSERLESS_STEALTH_MODE:-1}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_PROXY_URL: ${OPENAI_PROXY_URL:-https://api.openai.com/v1}
       OPENAI_MODEL_LIST: ${OPENAI_MODEL_LIST:-}
@@ -158,6 +168,29 @@ services:
       https_proxy: ${HTTPS_PROXY:-}
       all_proxy: ${ALL_PROXY:-}
       no_proxy: ${NO_PROXY:-127.0.0.1,localhost,postgresql,redis,rustfs,searxng,lobe}
+    networks:
+      - lobehub
+
+  browserless:
+    image: ghcr.io/browserless/chromium:latest
+    container_name: lobehub-browserless
+    restart: unless-stopped
+    shm_size: "1gb"
+    ports:
+      - "127.0.0.1:${BROWSERLESS_PORT:-13000}:3000"
+    environment:
+      TOKEN: ${BROWSERLESS_TOKEN:-lobehub-local-browserless}
+      CONCURRENT: ${BROWSERLESS_CONCURRENT:-2}
+      QUEUED: ${BROWSERLESS_QUEUED:-10}
+      TIMEOUT: ${BROWSERLESS_TIMEOUT:-60000}
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      ALL_PROXY: ${ALL_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-127.0.0.1,localhost,postgresql,redis,rustfs,searxng,lobe,browserless}
+      http_proxy: ${HTTP_PROXY:-}
+      https_proxy: ${HTTPS_PROXY:-}
+      all_proxy: ${ALL_PROXY:-}
+      no_proxy: ${NO_PROXY:-127.0.0.1,localhost,postgresql,redis,rustfs,searxng,lobe,browserless}
     networks:
       - lobehub
 

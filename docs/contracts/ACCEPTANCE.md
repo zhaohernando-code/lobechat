@@ -35,6 +35,7 @@
 - DeepSeek `deepseek-chat` 或 `deepseek-reasoner` 至少一个模型可完成普通对话。
 - 密钥错误、模型错误、网络错误能在 UI 或日志中定位到供应商边界。
 - Web search 必须能通过 LobeHub 调到本地 `SearXNG` JSON API，而不是只剩首页和模型对话可用。
+- Web crawl 必须能通过本地 Browserless `/content` API 抓取普通网页；只配置搜索列表但不能阅读网页不算 web-browsing 完整可用。
 
 ## 子路径
 
