@@ -184,6 +184,38 @@ path.write_text(source.replace(old, new, 1))
 PY
   fi
 
+  local plugin_dispatch_path="$CACHE_DIR/src/store/chat/slices/plugin/actions/publicApi.ts"
+  if [[ -f "$plugin_dispatch_path" ]] && ! grep -q "payload.source === 'mcp'" "$plugin_dispatch_path"; then
+    python3 - "$plugin_dispatch_path" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+source = path.read_text()
+old = """  internal_invokeDifferentTypePlugin = async (
+    id: string,
+    payload: ChatToolPayload,
+    stepContext?: RuntimeStepContext,
+  ): Promise<any> => {
+    switch (payload.type) {
+"""
+new = """  internal_invokeDifferentTypePlugin = async (
+    id: string,
+    payload: ChatToolPayload,
+    stepContext?: RuntimeStepContext,
+  ): Promise<any> => {
+    if (payload.source === 'mcp') {
+      return await this.#get().invokeMCPTypePlugin(id, payload);
+    }
+
+    switch (payload.type) {
+"""
+if old not in source:
+    raise SystemExit(f"Expected plugin dispatch block not found in {path}")
+path.write_text(source.replace(old, new, 1))
+PY
+  fi
+
   local dockerfile_path="$CACHE_DIR/Dockerfile.database"
   if [[ ! -f "$dockerfile_path" ]]; then
     dockerfile_path="$CACHE_DIR/Dockerfile"

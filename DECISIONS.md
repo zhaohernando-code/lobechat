@@ -1,5 +1,42 @@
 # LobeChat Deployment Decisions
 
+[2026-05-20T02:30:00+08:00] Local DS Pro file and skill baseline decision:
+Root DS Pro/DeepSeek assistants must use local tools for Office files, uploads, OCR, and market-skill import. Internal capabilities are not allowed to depend on the broken official LobeHub Cloud Sandbox authorization flow.
+
+补充说明
+- `/chat-s3` signed uploads preserve SigV4 query strings and forward with `Host: rustfs:9000`, because rewriting signed URLs to the public host invalidates browser PUT uploads.
+- `local-office-mcp` now covers `create/read docx`, `create/read pptx`, `create/read xlsx`, text/code/Markdown reading, `/chat-s3` input resolution, OCR through host Tesseract plus `chi_sim`, and local market-skill import/list/get helpers.
+- Existing DeepSeek assistants remove `lobe-cloud-sandbox`, dedupe plugin arrays, and include `local-office-mcp`, `openclaw-skills-office-mcp`, `lobe-agent-documents`, `lobe-skill-store`, and `bytedance-deer-flow-find-skills`.
+- Built-in `lobe-skill-store` search remains useful, but duplicate imports can return an empty tool message; DS Pro should call `local-office-mcp/import_market_skill` for an explicit local `installed_or_updated` result.
+- Official LobeHub Market Cloud Sandbox authorization remains an external-only exception until valid trusted-client credentials exist for this domain.
+
+[2026-05-19T23:33:00+08:00] Local Office MCP live dispatch decision:
+DeepSeek assistants can use the local Office MCP as a custom MCP plugin, but the live LobeHub client must dispatch installed custom-plugin tool calls by `payload.source === "mcp"`, not only by `payload.type === "mcp"`. Current LobeHub can surface the tool schema while still trying the built-in executor path, which fails with `No executor found for: local-office-mcp/create_docx`.
+
+补充说明
+- `scripts/lobehubctl.sh build-image` now patches upstream `src/store/chat/slices/plugin/actions/publicApi.ts` so source-marked MCP tool calls route through `invokeMCPTypePlugin`.
+- The running image was patched and committed to `lobehub-custom:latest`, then recreated and rechecked with normal release and search/crawl health.
+- A real browser `/chat` run with DeepSeek called `local-office-mcp/create_docx` and produced `live-chain-fixed-20260519-2316.docx`.
+- Office MCP generated files are mirrored to `codex-server:/root/codex/dev/lobechat-office-mcp-output`, and the edge serves authenticated downloads under `/chat-files/office/*`.
+- The Office MCP server runs Streamable HTTP in stateless mode so LobeHub does not retain invalid MCP session ids across local server restarts.
+- OCR remains partial until host Tesseract and Chinese language packs are installed or replaced by a dedicated OCR service.
+
+[2026-05-19T22:25:00+08:00] Local skill authorization baseline decision:
+This self-hosted `/chat` deployment should not present official LobeHub cloud-skill authorization as the default path unless the deployment has valid Market trusted-client credentials for this domain. The official Market OIDC service rejects `client_id=lobechat-com` with `redirect_uri=https://hernando-zhao.cn/market-auth-callback`, and dynamic registration did not yield a usable client.
+
+补充说明
+- `office-mcp` is now treated as a local installed skill: one `agent_skills` row exists for every current user, and every DeepSeek assistant/default-agent plugin list includes `openclaw-skills-office-mcp`.
+- Existing DeepSeek assistants no longer include `lobe-cloud-sandbox`, because that cloud integration triggers the broken official OIDC login prompt when `MARKET_TRUSTED_CLIENT_ID` and `MARKET_TRUSTED_CLIENT_SECRET` are absent.
+- The verified root assistant profile shows `Web Browsing`, `Documents`, and `office-mcp` under `集成技能`; this is the current DS Pro baseline.
+
+[2026-05-19T21:45:00+08:00] DeepSeek document-tool baseline decision:
+Existing DeepSeek assistants should have document-related tools enabled by default, because Word/PPT reading and generation require tool execution rather than only model text generation. This was initially implemented by appending `lobe-cloud-sandbox` and `lobe-agent-documents`, but the later local-skill authorization decision supersedes the sandbox part: `lobe-cloud-sandbox` is removed until official Market trusted-client credentials exist, while `lobe-agent-documents` and `openclaw-skills-office-mcp` remain enabled.
+
+补充说明
+- The authenticated `/chat` UI shows usable DeepSeek assistant skills including Web Browsing, Documents, and local market skills under agent profile `集成技能`.
+- The default public skill index does not expose a clear one-click Word/PPT/OCR marketplace skill; document work is handled through built-in sandbox/document tools or a future custom MCP.
+- OCR is not fully covered by this baseline. Chinese OCR should be added as a dedicated OCR MCP/sidecar if it must be reliable for all DeepSeek assistants.
+
 [2026-05-19T10:20:00+08:00] Browserless crawl and Chinese search decision:
 The local LobeHub stack must provide its own Browserless sidecar for web-page crawl and must include Chinese-capable SearXNG engines in the default search set. LobeHub's browserless crawler errors when both `BROWSERLESS_URL` and `BROWSERLESS_TOKEN` are absent, and Bing-only SearXNG results can misread Chinese finance queries such as `A股 上证指数`.
 

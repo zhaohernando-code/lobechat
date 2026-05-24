@@ -87,10 +87,18 @@ https://hernando-zhao.cn/chat/api/auth/callback/{provider}
 
 ## S3 暴露
 
-一期不验收上传，但 Compose 已保留 RustFS。若后续启用上传，`S3_PUBLIC_DOMAIN` 不能只填容器内地址，必须是浏览器和模型服务都能访问的公网地址。当前预留为：
+`S3_PUBLIC_DOMAIN` 不能只填容器内地址，必须是浏览器和模型服务都能访问的公网地址。当前公网对象存储入口为：
 
 ```text
 https://hernando-zhao.cn/chat-s3
 ```
 
-这需要入口层另增 RustFS API 代理，且要配置 CORS。
+`/chat-s3/*` 由根域入口层放行给已登录用户，再交给控制面 `lobechat-s3` 隧道代理到本机 RustFS `127.0.0.1:9000`。LobeHub 仍可能在接口返回中生成 `http://rustfs:9000/*` 这类 Docker 内网 URL；控制面代理必须只在 `/chat` 的 JSON/HTML/JS 响应里把这些内网 URL 改写成 `https://hernando-zhao.cn/chat-s3/*`。
+
+签名 URL 处理规则：
+
+- 浏览器上传用的 `/chat-s3/*?...X-Amz-*` `PUT/POST/OPTIONS/GET/HEAD` 请求必须保留完整查询串，并用 `Host: rustfs:9000` 转发到本机 RustFS，否则 SigV4 canonical request 会失效。
+- 仅对历史技能 zip 下载中泄漏的 stale `X-Amz-*` 查询串做剥离兜底；这些对象本身应通过 RustFS public download policy 读取。
+- 二进制对象响应保持透传，不做 HTML/JSON 文本改写。
+
+2026-05-20 验证：本地控制路由和公网 `https://hernando-zhao.cn/chat-s3/...` 均完成 presigned PUT smoke，真实浏览器上传 `txt/md/code/docx/pptx/xlsx` 全部返回 200，并能被 DS Pro 读取。

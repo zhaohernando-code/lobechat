@@ -1,4 +1,5 @@
 deploy/.env
+backups/
 backups/*.sql
 backups/*.tar.gz
 backups/*.dump
@@ -7,4 +8,6 @@ runtime/
 .cache/
 .playwright-cli/
 output/
+logs/
+local-office-mcp/__pycache__/
 .DS_Store

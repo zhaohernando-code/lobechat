@@ -18,7 +18,7 @@ fail() {
 
 check_search_health() {
   check_one_search "openai" "SearXNG English search returned no usable results"
-  check_one_search "A股 上证指数" "SearXNG Chinese finance search returned no usable results" "上证|东方财富|新浪|A股|指数|同花顺"
+  check_one_search "上证指数 000001 行情" "SearXNG Chinese finance search returned no usable results" "上证|东方财富|新浪|A股|指数|同花顺|上海证券交易所"
 }
 
 check_one_search() {
