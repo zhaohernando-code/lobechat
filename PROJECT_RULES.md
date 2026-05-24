@@ -7,4 +7,8 @@
 - 长期运行的数据目录固定在 `/Users/hernando_zhao/codex/projects/lobechat/data/`，由 `LOBE_DATA_DIR` 显式传给 Compose；备份默认写入 `backups/`。不要让 `runtime/`、worker 临时目录或其他 checkout 形成第二份 LobeHub 数据根。
 - `/chat` 是用户入口；如果同时存在规范隧道路由，文档必须明确区分“用户入口”和“底层挂载/代理路径”。
 - 账号策略必须保持“预置账号、禁开放注册”的边界；若后续接入统一 OIDC/SSO，必须同步更新 `docs/contracts/AUTH.md` 和根级入口文档。
+- `/chat/` 这类 mounted app 的 canonical 形式、工具入口、自动跳转和认证 callback 必须保持一致；不要让裸 `/chat` 在中间链路里被上游归一化成根域 `/`。
+- 调整子路径代理、认证或前缀逻辑前，先同时核对外部 canonical URL 和本地 upstream 直连 URL 的路径语义；如果 upstream 只认剥前缀后的路径，先记录事实再决定修 edge 还是修应用。
+- 如果代理层改写 HTML/body 并重新设置 `Content-Length`，必须同时移除 upstream 的 `Content-Encoding`、`Transfer-Encoding` 和失效的 `ETag`。
+- 登录、OIDC、OAuth、SSO 或挂载子路径认证问题必须以真实浏览器网络链路为准，不凭 URL 命名猜测 method、cookie、JSON 回包或跳转行为。
 - Durable deployment or scope decisions go to `DECISIONS.md`; reusable lessons go to `PROCESS.md`; current progress and blockers go to `PROJECT_STATUS.json`.
