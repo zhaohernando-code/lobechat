@@ -1,174 +1,49 @@
 # PROCESS
 
-## 2026-05-25
+本文件只记录 LobeChat 部署包装可复用的反回归原则，不记录单次流水账。当前服务状态、发布证据、账号操作、生成文件和具体提交写入 `PROJECT_STATUS.json`、`DECISIONS.md`、release artifact、数据库备份记录或 git 历史。
 
-- Problem: the LobeChat LaunchAgent watch loop could recreate Compose services every 30 seconds during repeated transient health failures, which turns a single dependency outage into log churn and container restart noise.
-- Resolution: `scripts/start-local-frontend.sh` now records per-recovery timestamps under `~/.cache/codex/lobechat-watch` and applies a default 300 second cooldown separately for stack, `searxng`, and `lobe` recovery actions.
-- Prevention: watchdog-style loops must distinguish detection frequency from repair frequency. A public route can be probed often, but destructive or noisy repair actions need per-action cooldown state.
+## 维护规则
 
-## 2026-05-19
+- **只写 mounted chat 产品的失败模式**：条目必须防止 future worker 在 auth、subpath、sidecar、MCP、storage、Docker 或 public route 验收上走错默认思路。单次修复和验证流水不写。
+- **按主题维护，不按日期追加**：同类经验合并到主题；不要新增日期标题、commit、截图、文件名或一次性账号记录。
+- **真实产品可用性优先**：能打开页面、登录成功或 schema 可见都不是最终原则；聊天产品必须能在 public route 完成真实模型/工具路径。
+- **状态与原则分离**：`PROJECT_STATUS.json` 写当前健康和下一步，`DECISIONS.md` 写长期取舍，本文件写以后怎么不再错。
 
-- Problem: `/chat` still had several "looks clickable but may not work" surfaces around uploads, skill import, local Office, and Cloud Sandbox authorization. Upload PUTs could fail if the public `/chat-s3` proxy stripped or rewrote SigV4 query strings, `local-office-mcp` could not read uploaded `/chat-s3` files or plain text/code, built-in market skill duplicate imports returned an empty tool message, and OCR was advertised before host Tesseract existed.
-- Resolution: backed up LobeChat data and root edge config; fixed the control-plane `lobechat-s3` proxy to preserve signed upload queries and forward `Host: rustfs:9000`; extended `local-office-mcp` with `/chat-s3` input resolution, `read_text_file`, generic `read_file`, local `get_market_skill` / `import_market_skill` / `list_installed_skills`, and OCR using `/opt/homebrew/bin/tesseract`; installed `tesseract` plus `tesseract-lang`; removed `lobe-cloud-sandbox` from DeepSeek assistants; deduped plugin arrays; locally installed and attached `bytedance-deer-flow-find-skills`; and deleted failed/truncated test topics created during validation.
-- Verification: real browser `/chat` root session sent a normal message, uploaded `txt/md/code/docx/pptx/xlsx`, read exact markers from all six uploaded files, generated Word/PPT/Excel with `OFFICEGENSMOKE20260520`, downloaded the three public `/chat-files/office/*` links with HTTP 200 and correct OOXML MIME/magic, searched the skill store without Cloud Sandbox authorization, and invoked the local skill import path after fixing LaunchAgent `docker` PATH. Local tests also verified public signed upload, Office readback, OCR smoke (`OCR_SMOKE_20260520` plus Chinese), release health, search/crawl health, and clean targeted log scans.
-- Prevention: do not treat a visible button, plugin schema, or database row as acceptance. For `/chat`, acceptance requires browser-visible action success, artifact/download verification where relevant, and recent logs without the known auth/upload/MCP/S3/crawl errors.
+## Public Route 验收
 
-- Problem: the latest Office-file conversation answered a download request by wrapping the URL in backticks, so LobeChat rendered it as code instead of a clickable link. When the user said the link was not clickable, the assistant tried to call a shell `runCommand` skill and stopped at manual approval instead of solving the formatting issue.
-- Resolution: rejected the pending command approval, backed up the root DS Pro agent row, and added a narrow `system_role` rule to `agt_BRootDRs5rbr`: tool `download_url` values must be returned as Markdown links, not code-formatted URLs, and existing download URLs should not trigger shell verification. Browser verification in the same topic produced a clickable link element for `message-recovery-office-20260519-2358.docx` without tool calls.
-- Prevention: file-download UX regressions should be tested in the real chat surface, because a valid public URL can still be unusable if the model formats it as inline code or diverts into unnecessary tools.
+- **聊天产品验收要有真实模型回合**：登录、onboarding、homepage render 只证明入口可达；至少一次 provider-backed reply 才能证明 assistant usable。
+- **board closeout 不代表产品 ready**：控制面任务可以结束，但 `/chat` 产品仍以真实浏览器路由为最终 truth source。产品未 usable 时，要在状态文件显式保留差异。
+- **移动端和成员账号要独立验收**：root 成功不代表 member 成功；桌面成功不代表移动可用。共享账号、静态资源、root-escaped API 和 browser-specific routing 都要覆盖真实用户路径。
 
-- Problem: after a local Office MCP restart, a live `/chat` topic showed `消息未能发送`. Server logs showed two linked failures: `mcp.callTool` returned `No valid session ID provided` from the Streamable HTTP MCP server, and the follow-up `message.createMessage` hit `messages_parent_id_messages_id_fk` because the browser tried to continue from a temporary parent id that never became a persisted message.
-- Resolution: switched `local-office-mcp` to FastMCP `stateless_http=True`, restarted `com.codex.local-office-mcp`, verified LobeHub's container can list MCP tools over `http://host.docker.internal:18081/mcp`, and verified the same failed browser topic can now send both a normal DeepSeek reply and a `create_docx` tool call.
-- Prevention: local MCP services consumed by LobeHub should be stateless unless the client/server session lifecycle is explicitly durable across restarts. Message-send recovery must be checked in the same browser topic that failed, not only with a direct MCP client.
+## Mounted Path 与 Client Runtime
 
-- Problem: `local-office-mcp` was visible in the chat UI, but live tool execution failed because installed custom MCP tool calls carried `payload.source === "mcp"` with `payload.type === "default"`, causing LobeHub's client dispatcher to call the built-in tool executor and log `No executor found for: local-office-mcp/create_docx`.
-- Resolution: patched the wrapper build step to route `payload.source === "mcp"` through `invokeMCPTypePlugin`, patched/recommitted the current `lobehub-custom:latest` image, recreated `lobehub-app`, and verified a real browser DeepSeek run created `live-chain-fixed-20260519-2316.docx` through `local-office-mcp/create_docx` plus `list_outputs`.
-- Prevention: for custom installed MCP tools, do not accept "schema visible in UI" as execution readiness. Acceptance must include a real tool-call audit log and an output artifact.
+- **edge/auth 成功后仍要查 client basename**：如果浏览器到达 shell 后 loading 或跳错路径，优先验证 upstream router basename、`window.location` redirect、SPA entry 和 mounted base path，而不是继续猜 proxy。
+- **不要把 debug flag 当生产合同**：上游 `__DEBUG_PROXY__`、`/_dangerous_local_dev_proxy` 或类似内部路径只能作为诊断证据。能让 UI 暂时渲染不代表可作为生产 subpath 方案。
+- **root-escaped runtime 路由要归属明确**：`/_next`、`/_spa`、`/manifest.webmanifest`、`/api/auth/*`、`/api/user`、`/api/config` 等路径若属于 LobeChat，就必须由 edge/control proxy 明确转回 `/chat` surface，不能落入 control-plane root bucket。
+- **proxy body mutation 必须处理压缩和 header**：注入 auto-SSO、rewrite URL 或修改 HTML/JSON/JS 时，先处理 content-encoding 和 magic bytes，并移除 stale length/cache/compression headers。
 
-- Problem: Office MCP created files on the Mac host, while the public edge serving `https://hernando-zhao.cn/chat-files/office/*` runs on `codex-server`, so a successful tool result could still produce a 404 download link.
-- Resolution: Office MCP now mirrors generated Office files to `codex-server:/root/codex/dev/lobechat-office-mcp-output`, and the root edge serves authenticated `/chat-files/office/*` downloads from that directory. Verification through the authenticated browser context returned HTTP 200, Word MIME type, and OOXML zip magic for both the original Lobe-generated file and a fresh MCP HTTP-generated file.
-- Prevention: every tool-returned `download_url` must be tested from the actual public browser route. Local file existence and MCP success are not sufficient when the public edge runs on another host.
+## Auth 与 Shared Identity
 
-- Problem: clicking the `为助理完成技能授权` / `Cloud Sandbox 登录` prompt opened the official LobeHub Market OIDC endpoint with `client_id=lobechat-com` and `redirect_uri=https://hernando-zhao.cn/market-auth-callback`, which the official service rejected as `invalid_redirect_uri`. The live app has no `MARKET_TRUSTED_CLIENT_ID` or `MARKET_TRUSTED_CLIENT_SECRET`, so this was not a local callback-route failure.
-- Resolution: backed up `agent_skills`, `agents`, and `user_settings`; copied the already downloaded `openclaw-skills-office-mcp` skill row to every current user; appended `openclaw-skills-office-mcp` to every DeepSeek assistant and default-agent plugin list; removed the untrusted `lobe-cloud-sandbox` integration from existing DeepSeek assistants to eliminate the broken official cloud authorization prompt. Browser verification on `https://hernando-zhao.cn/chat/agent/agt_BRootDRs5rbr/profile` showed the integrated skills as `Web Browsing`, `Documents`, and `office-mcp`.
-- Prevention: do not enable official LobeHub cloud skills on this self-hosted domain until valid Market trusted-client credentials are configured for `https://hernando-zhao.cn/market-auth-callback`. Prefer local skills/MCPs for DS Pro capabilities that must work without external LobeHub account authorization.
+- **OIDC/PKCE 不能被服务端猜测替代**：当 upstream 在浏览器生成 PKCE state/challenge 时，不要伪造 server-side callback。保持 upstream 页面/endpoint 在可信路径内，只自动化最小用户动作或由 edge 启动官方 redirect。
+- **root-domain identity 是唯一入口源**：自托管 `/chat` 若采用 root-domain OIDC，就不要再维护第二套 Better Auth email allowlist；成员准入应由根域账号系统决定。
+- **官方 cloud skill 需要可信 client 凭证**：没有 Market trusted-client 配置时，不要启用会跳到官方 LobeHub OAuth 的 cloud skill。需要稳定能力时优先使用本地 skill/MCP。
 
-- Problem: the LobeHub skill store could install `office-mcp`, but clicking its download link opened a presigned `http://rustfs:9000/lobe/skills/zip/...zip` URL. The zip object existed in RustFS, but the browser could not resolve the Docker-only `rustfs` hostname.
-- Resolution: expose RustFS through the authenticated root-domain `/chat-s3` route, add a control-plane `lobechat-s3` tunnel to local RustFS on port `9000`, and rewrite LobeHub `/chat` JSON/HTML/JS responses so leaked `http://rustfs:9000/*` object URLs become `https://hernando-zhao.cn/chat-s3/*` without carrying stale `X-Amz-*` signature parameters.
-- Prevention: any LobeHub S3/file feature must be verified from the public browser-visible route, not only by checking object existence inside RustFS or the Docker network.
+## Search、MCP 与 Tooling
 
-- Problem: The authenticated chat UI had usable Web Browsing, but DS Pro did not have a clear global baseline for Word/PPT-style document operations, and the public LobeHub skill index did not provide an obvious dedicated Word/PPT/OCR marketplace plugin.
-- Resolution: logged in through the root-domain account, confirmed the agent profile `集成技能` menu exposes built-in Cloud Sandbox and Documents skills, enabled those for the root Lobe AI assistant, backed up the database, and appended `lobe-cloud-sandbox` plus `lobe-agent-documents` to all existing DeepSeek assistants.
-- Prevention: treat Word/PPT read/write as tool-enabled workflows, not pure model features. Keep OCR separate until a real OCR engine or custom MCP sidecar is added; the current sandbox says Tesseract is not installed.
+- **搜索健康要验证可用结果**：SearXNG 返回 200 JSON 不够；必须检查代表性中文/英文 query 有结果，并验证 LobeHub 使用的 Browserless/page-content 端点。
+- **容器搜索出网路径要显式**：Mac 上的 containerized sidecar 不应依赖 LaunchAgent 环境继承；需要代理时把 host proxy path 写入配置和 health check。
+- **本地 MCP 默认 stateless**：被 LobeHub 消费的本地 MCP 服务应 stateless，除非 client/server session lifecycle 已经持久化。重启后必须用同一个失败 topic 验证恢复，而不是只用 direct client。
+- **工具 schema 可见不等于可执行**：custom MCP/plugin 显示在 UI 中不够；验收要有真实 tool-call audit log、output artifact 和 public download URL。
+- **tool download URL 必须走 public edge**：本机文件存在和 MCP 成功不代表用户能下载。返回给浏览器的 URL 要从 `https://hernando-zhao.cn/chat-files/...` 等真实边缘路径验证。
 
-- Problem: Lobe AI reported that English search worked, but Chinese finance queries such as `A股 上证指数` returned dictionary/letter-style results, and page crawl still failed because Browserless variables were absent.
-- Resolution: add a local Browserless sidecar and pass the crawler variables into `lobe`; enable SearXNG `baidu`, `360search`, and `google` for Chinese finance coverage, keep `bing` for general/English coverage, and disable the access-denied `mojeek` engine.
-- Prevention: search health must cover representative multilingual queries, not only an English smoke query. Use specific Chinese finance wording such as `上证指数 000001 行情`; the earlier `A股 上证指数` query is known to be ambiguous in Bing-style parsing and can degrade into dictionary results for the letter A. Crawl health must hit the same Browserless `/content` endpoint that LobeHub uses, otherwise a working search list can hide broken page-reading.
+## Storage 与 S3
 
-- Problem: `SearXNG` returned HTTP 200 JSON for `format=json` but every normal query had `results: []` and engines reported timeout or access-denied failures. Host networking confirmed the same search engine timed out without proxy and succeeded with the local proxy.
-- Resolution: route SearXNG outbound requests through the Mac host proxy and make `health-search` require at least one real result for a normal query.
-- Prevention: a search health check must validate usable results, not only JSON shape. For containerized search sidecars on this Mac, keep the host proxy path explicit rather than relying on LaunchAgent environment inheritance.
+- **Docker-only hostname 不能泄漏给浏览器**：RustFS、S3 presigned URL、skill zip 和 upload/download 路径必须 rewrite 到 public route；不要让 `rustfs:9000` 出现在浏览器可见链接里。
+- **signed write 与 stale public read 分开处理**：skill zip 下载可以剥 stale query；presigned upload/object request 必须保留 `X-Amz-*` query 和 canonical host。不要用一个 rewrite 规则覆盖读写。
+- **跨项目复用搜索只用数据边界**：其他项目需要 web search 时，边界应在 SearXNG/search result data。不要把 `/chat` 浏览器会话、agent memory 或 user state 当隐藏 executor。
 
-## 2026-05-18
+## Docker 与数据目录
 
-- Problem: web search could fail silently even while `/chat` still looked healthy because the release watch only probed port `3210` and the OIDC bootstrap. `SearXNG` on `127.0.0.1:18080` could die or drift without any self-healing, and the watch would keep treating the stack as healthy or repeatedly recreate only `lobe`.
-- Resolution: `scripts/check-release-health.sh` now validates the loopback `SearXNG` JSON API, `scripts/lobehubctl.sh` exposes `health-search` and `recreate-search`, and `scripts/start-local-frontend.sh` recovers search failures by recreating `searxng` separately from `lobe`.
-- Prevention: for mounted apps that depend on sidecar services, homepage reachability is not enough. Health checks and self-healing must cover every user-visible dependency boundary with the same protocol the real consumer uses, here `format=json` on the SearXNG API.
-
-## 2026-05-05
-
-- Problem: stock-dashboard shortpick experiments need a clean, automatable search substrate for DeepSeek because the official DeepSeek API does not expose web search.
-- Resolution: LobeChat's SearXNG service is acceptable for this role only as a local search backend, not as a reused browser chat session or agent state. The wrapper exposes SearXNG JSON on `127.0.0.1:18080` so callers can execute model-planned searches without inheriting LobeChat user memory, workspace files, or conversation context.
-- Prevention: if another project consumes LobeChat search, keep the boundary at SearXNG/search-result data. Do not call the `/chat` browser conversation as a hidden executor unless a separate decision creates a stateless service user and proves no memory, agent prompt, or chat history is leaking.
-
-- Problem: after restarting the release stack, the app showed only a `hz-root` LobeHub user and the three manually configured DeepSeek API keys looked missing.
-- Resolution: the keys were still present in the canonical PostgreSQL data directory, but the runtime checkout had started Compose from a different relative bind mount and created/used `~/codex/runtime/projects/lobechat/data/postgresql`. The runtime data directory was backed up, canonical `data/` was restored to the served path, and the wrapper now uses explicit `LOBE_DATA_DIR=/Users/hernando_zhao/codex/projects/lobechat/data` for PostgreSQL, Redis, and RustFS.
-- Prevention: never let the active LobeHub stack depend on checkout-relative `../data` paths. The LaunchAgent and deploy profile must point at the canonical project entrypoint, and accidental runtime helper calls must redirect to canonical before running Compose.
-
-- Problem: `https://hernando-zhao.cn/chat/` returned `connect ECONNREFUSED 127.0.0.1:3210` even though `com.codex.lobechat.frontend` was loaded and running.
-- Resolution: Docker Desktop was stopped, so no Compose container could bind 3210. Starting Docker Desktop let Docker's restart policies and the frontend LaunchAgent bring `lobehub-app` back. The watch script now sets a LaunchAgent-safe `PATH`, actively starts Docker Desktop when `docker info` fails, and re-enters the Compose/probe loop after local probe failures.
-- Prevention: for Docker-backed release routes, a watch that only waits for Docker is incomplete. It must own Docker Desktop startup, emit enough logs to show which layer is unavailable, and the deploy profile must include the real LaunchAgent plus the public route's local health check port.
-
-## 2026-05-02
-
-- Problem: LobeChat 界面报告网络搜索不可用。日志显示 SearXNG search API 持续返回 403 Forbidden，而 HTML 格式搜索正常。
-- Resolution: SearXNG 的 `use_default_settings: true` 拉取的上游默认配置将 `search.formats` 限制为 `[html]`，导致所有 `format=json` 请求返回 403。在 `searxng-settings.yml` 的 `search` 段显式添加 `formats: [html, json]` 覆盖默认值后恢复。
-- Prevention: 使用 SearXNG 且消费者依赖 JSON API 时，必须在项目级 settings.yml 中显式声明 `search.formats` 包含 `json`，不能依赖上游默认配置。
-
-## 2026-04-28
-
-- Problem: the original root-domain auth bridge described `/chat` as a shared-account entry, but the real domain still only had a single hardcoded root login, so “future multi-user support” existed only on paper and not as a live identity source.
-- Resolution: the root-domain edge now owns a small managed user store (`root` + `member` roles), exposes root-only account management, allows self-service password changes, and emits real per-user OIDC claims to LobeHub without enabling any LobeHub-local password login.
-- Prevention: when this wrapper says “same-domain account system,” verify the root-domain identity layer itself already supports the intended user model. Do not describe downstream OIDC consumers as multi-user-ready while the upstream login source is still single-account.
-
-- Problem: the first real `member` account (`amoeba`) could authenticate through root-domain OIDC, but Chrome still stalled on the LobeHub logo or a blank `/chat/signin` shell while `root` worked. The account was valid; the mounted app still depended on root-scoped runtime assets and APIs that the edge had only been permitting for root.
-- Resolution: the edge now treats proven LobeChat runtime resources as part of the `/chat` surface for members too. Root-scoped static assets `/_spa/*`, `/_next/*`, and `/manifest.webmanifest` are allowed for authenticated members, while root-escaped runtime APIs `/api/auth/*`, `/api/user`, and `/api/config` are explicitly proxied back into the `/chat` tunnel instead of the control-plane root `/api/*`. After publishing that fix live, the real Chrome `amoeba` session reached the usable `https://hernando-zhao.cn/chat` homepage.
-- Prevention: for mounted apps behind shared identity, “login succeeds” is not enough. Acceptance for non-root users must include a live browser check that every post-login root-escaped asset and runtime API still resolves to the app, not to the host site's default authorization bucket.
-
-- Problem: creating a new root-domain `member` account still did not automatically make that user acceptable to LobeHub. The root-domain account store and LobeHub Better Auth allowlist were drifting independently, so a fresh member could pass root-domain login and still hit `EMAIL_NOT_ALLOWED` on `/chat`.
-- Resolution: first verified the failure by reproducing `EMAIL_NOT_ALLOWED` for `zhangzhou`, then removed `AUTH_ALLOWED_EMAILS` from the active OIDC-only deployment instead of continuing to mirror member emails into a second list. After recreating `lobehub-app`, `zhangzhou@hernando-zhao.cn` completed the OIDC callback, received a Better Auth app session, and appeared in the LobeHub `users` table without any per-user allowlist maintenance.
-- Prevention: once `/chat` is fully OIDC-only and email/password login is disabled, do not keep a second Better Auth email allowlist in the wrapper. The root-domain user store must stay the only source of truth for who can enter `/chat`.
-
-- Problem: even after the shared-account flow worked, `/chat` still had a rough UX edge: the browser could briefly render the upstream sign-in page before the client-side auto-SSO script fired, which looked like garbled or flickering intermediate content instead of a clean same-domain handoff.
-- Resolution: the root-domain edge now starts the LobeChat `generic-oidc` bridge server-side on `GET /chat/signin`, relays the upstream Better Auth state cookie, and responds with a direct `302` to `/oidc/authorize`. The older injected auto-SSO snippet remains only as a fallback path.
-- Prevention: when the intended behavior is “shared account flow with no visible intermediate login page,” do not rely on browser-rendered HTML plus injected JavaScript as the primary path if the edge can deterministically start the redirect itself.
-
-- Problem: after root-domain OIDC and `/chat` aliasing were repaired, Safari could still authenticate and land on `/chat/onboarding` while the UI stayed on `Loading`, which made it look like an edge/proxy failure even though the remaining fault was inside the mounted client runtime.
-- Resolution: stopped iterating on proxy guesses and traced the full chain end-to-end. The final fix kept the official image wrapper but made the build step patch two upstream client paths: `src/spa/entry.web.tsx` now honors `NEXT_PUBLIC_BASE_PATH` for the SPA basename, and `src/layout/GlobalProvider/useUserStateRedirect.ts` now strips/reapplies the configured base path before browser redirects. After rebuilding the custom image and recreating the app container, Safari reached `/chat/onboarding/classic`, completed onboarding, and entered the usable `/chat` homepage.
-- Prevention: for mounted apps, do not stop at edge routing and auth success. If the browser reaches the shell but stalls after login, validate both router basename handling and browser-side `window.location` redirects under the mounted path before changing the proxy again.
-
-- Problem: the auto-SSO bootstrap originally rewrote live `/chat/signin` HTML while leaving upstream compression headers intact, which is enough to turn a correct script injection into a broken response on the real browser path.
-- Resolution: HTML mutation on the edge now drops stale `Content-Encoding`, `Content-Length`, `Transfer-Encoding`, and `ETag` before re-emitting the rewritten body, and the injected bootstrap calls the mounted `/chat/api/auth/sign-in/oauth2` endpoint instead of guessing a root-scoped auth path.
-- Prevention: if a proxy mutates proxied HTML, response-header normalization is part of the feature, not cleanup. Never rewrite bodies on live traffic while preserving upstream compression or stale length metadata.
-
-- Problem: route and onboarding success were not enough to prove the product actually worked; until a real provider-backed reply existed, `/chat` was still only “UI reachable,” not “assistant usable.”
-- Resolution: reused the currently healthy DeepSeek key from the stock dashboard runtime, recreated `lobehub-app`, selected `DeepSeek V4 Pro` in a scripted browser session, and verified a real live reply on the public route: prompt `你好，请只回复“测试成功”。` returned `测试成功`.
-- Prevention: for chat products, acceptance must include one minimal real model round-trip on the public route, not only successful login, onboarding, and homepage rendering.
-
-- Problem: custom-image cold builds for this upstream monorepo are dominated by dependency download time, but the wrapper previously hid the upstream `USE_CN_MIRROR` capability, so operators had to remember undocumented environment tricks or accept slow default registry fetches.
-- Resolution: the wrapper now transparently forwards `USE_CN_MIRROR` into `docker build`, documents the switch in `README.md`, and exposes a default-off toggle in `deploy/.env.example`.
-- Prevention: when upstream already offers a practical build-acceleration control, surface it in the wrapper and docs instead of forcing future sessions to rediscover it from raw Dockerfiles.
-
-- Problem: the dashboard task could be force-closed while the actual `https://hernando-zhao.cn/chat` product route was still not usable, which risks letting operators read board success as product success.
-- Resolution: from this point, `lobechat` closeout is tracked separately from the board task lifecycle. Safari verification is now the product truth source: the board may be finished, but the product remains incomplete until `/chat` reaches a usable LobeHub UI instead of the app-shell `Loading` state.
-- Prevention: for user-facing apps, do not let queue closeout become the acceptance signal. Record product/runtime truth separately in `PROJECT_STATUS.json`, and require a real browser success state on the public URL before calling the product complete.
-
-- Problem: a temporary `window.__DEBUG_PROXY__` HTML injection made the stalled UI render, but only by flipping the upstream SPA into its hard-coded `/_dangerous_local_dev_proxy` development mode; the browser then escaped toward root-domain routes instead of staying canonically under `/chat`.
-- Resolution: keep that result only as diagnostic evidence that client-side route interpretation is part of the `Loading` failure. Do not treat `__DEBUG_PROXY__` as a production basename knob or a valid `/chat` fix.
-- Prevention: when a minified upstream bundle exposes an internal debug flag, prove whether it is a supported production surface before adopting it. A route hack that only works by entering a named debug-proxy code path is not a shippable subpath solution.
-
-- Problem: the root-domain OIDC bridge had been described in repo docs before it actually existed in `port80-proxy.js`, and the live control plane still let root `/trpc/*` fall through unless a `/chat` referer proved ownership. Together those gaps made acceptance oscillate between “LobeHub local login page” and “TRPC Asset not found” even though the higher-level plan had already switched to shared identity.
-- Resolution: the edge proxy now auto-redirects authenticated `/chat/signin` and root `/signin?callbackUrl=.../chat...` requests into `generic-oidc`, and the live control plane now treats root `/trpc/*` as always belonging to the `/chat` tunnel. The fixes were verified on the real domain: an authenticated redirect chain now reaches `https://hernando-zhao.cn/chat/` with HTTP 200 instead of stopping at the LobeHub email/password page.
-- Prevention: for this wrapper, documentation changes about shared account behavior are not enough. Every auth/routing contract change must be paired with a real-domain redirect-chain check and at least one root-escaped app request check before the task is allowed back toward acceptance.
-
-- Problem: 根域登录后访问 `/chat` 仍进入 LobeHub 自己的 Better Auth 登录页，说明入口层只做了访问控制，没有把根域账号变成 LobeHub 可消费的身份来源。
-- Resolution: keep the official LobeHub image and move account unification to the root-domain edge: `port80-proxy.js` now acts as a minimal OIDC Provider backed by `hz_auth_session`, while LobeHub is configured as a `generic-oidc` client with email/password disabled.
-- Prevention: when acceptance says “same domain account system,” do not treat an outer login gate plus an inner app login as sufficient. The app must consume the shared identity directly, usually through OIDC/SSO or an explicit session bridge.
-
-- Problem: `/chat` could pass homepage and tool-catalog checks while the real browser still fell out of LobeHub through root-scoped `/signin`, `/_next/*`, and contextual `/api/*` paths.
-- Resolution: keep LobeHub on the official image, and solve the subpath mismatch in the control-plane/edge route ownership layer: `/chat` stays the public alias, escaped root static assets and proven `/chat` auth/API context go back to the LobeHub tunnel, and unrelated control-plane root APIs remain owned by the control plane.
-- Prevention: for official apps mounted under a main-site subpath, acceptance must include authenticated browser verification of the redirected login page and root-scoped assets, not only a curl check of the alias entry.
-
-## 2026-04-27
-
-- Problem: the remote control-plane release checkout for `lobechat` had drifted into a stale shell that no longer matched the maintained local wrapper, so project-create retries on the server kept seeing missing deploy assets even after the local repo had been repaired.
-- Resolution: re-synced the maintained canonical wrapper into `/root/codex/release/lobechat` before retrying the control-plane task, so remote retries no longer execute against an incomplete release checkout.
-- Prevention: when a project-create failure is caused by missing wrapper assets or deploy metadata drift, publish the canonical project checkout to the remote `release/<project>` root before expecting the server-side task state to recover.
-
-- Problem: current upstream LobeHub images now reject the deprecated `NEXT_PUBLIC_AUTH_URL` variable, which left `lobehub-app` in a restart loop and kept `127.0.0.1:3210` unreachable even though the rest of the Compose stack was healthy.
-- Resolution: removed `NEXT_PUBLIC_AUTH_URL` from the Compose wrapper, recreated the app container, and re-verified that the stack reaches a healthy local app which redirects unauthenticated traffic into the real-domain sign-in gate.
-- Prevention: when refreshing an official-image deployment wrapper, re-run the current upstream image instead of assuming older environment variables remain valid; deprecated variables that turn into hard startup errors must be pruned from the wrapper in the same turn.
-
-- Problem: the active acceptance checklist covered Compose, auth, chat flow, and `/chat` routing, but it still did not explicitly require operator discovery surfaces like the authenticated homepage and the control-plane tool catalog.
-- Resolution: the acceptance contract now treats the authenticated homepage card and the `/middle` tool-entry listing as required user-facing checkpoints for `LobeChat`, not optional polish after the runtime itself works.
-- Prevention: for user-facing projects on this platform, acceptance must cover both the runtime route and the operator-visible entry surfaces that are supposed to lead humans into that route.
-
-- Problem: lobechat repo 已经积累了多份有效说明文档，但默认入口仍只有 README；新会话既看不出当前上线阶段，也容易在 `docs/` 下混读 active spec 和历史来源记录。
-- Resolution: standardized this repo on `PROJECT_STATUS.json` + `README.md` + `PROJECT_RULES.md` + `DECISIONS.md` + `PROCESS.md`, moved active docs into `docs/contracts/`, and moved source-reference material into `docs/archive/`.
-- Prevention: future routing/auth/operations work must update the canonical entry docs in the same turn; active operational specs stay in `docs/contracts/`, while historical notes and external source captures stay in `docs/archive/`.
-
-## 2026-04-27
-
-- Problem: 需求最初只写“LobeChat”，但实际目标是把 LobeHub 官方自托管方案落到本机 Mac，并挂到 `https://hernando-zhao.cn/chat`，同时复用或演进现有统一账号体系。
-- Resolution: 项目定位为官方 Docker 镜像部署包装层，而不是自研聊天产品或重度源码分叉；一期先固定 Compose、持久化、账号策略、供应商配置、路由风险和验收手册。
-- Prevention: 引入大型开源应用时，先区分“官方已支持能力”和“本域名/本账号/本运维拓扑需要适配的能力”，再决定是否修改上游源码。
-
-## 2026-04-27
-
-- Problem: project-create acceptance failed because this repo declared a descriptive but unsupported compose-only `.codex.deploy.json` mode.
-- Resolution: the profile now uses the control plane's supported `local_runtime_service` mode and constrains it to sync/preserve/validate behavior for the Docker Compose wrapper.
-- Prevention: deployment profiles must use only modes implemented by `local-control-server/local-deploy-runtime.js`; project-specific topology belongs in profile fields, docs, and post-sync commands, not in invented mode names.
-
-## 2026-04-27
-
-- Problem: the repo documentation and deploy profile already depended on `scripts/lobehubctl.sh`, but the tracked `scripts/` directory was missing, so resumed local-runtime publish paths could fail before execution with a missing-path error.
-- Resolution: restored `scripts/lobehubctl.sh` with the documented compose validation, lifecycle, backup, restore, and secret-generation entrypoints, and revalidated `scripts/lobehubctl.sh config` against the current compose stack.
-- Prevention: if README, operations docs, `.env.example`, or post-sync deploy commands reference a helper script, that script must be tracked in the repo and validated before declaring the deployment wrapper recoverable.
-
-- Problem: Compose static validation still failed when only `deploy/.env.example` was available because service-level `env_file: .env` made the real secret file mandatory even for `docker compose config`.
-- Resolution: the compose stack now receives all required LobeHub, provider, auth, proxy, and RustFS init variables through explicit `environment` entries, so `--env-file deploy/.env.example` can validate structure without creating a local secret file.
-- Prevention: compose wrappers should distinguish required runtime secrets from static configuration validation; examples must be enough to run `docker compose config` without writing throwaway secret files.
-
-- Problem: tunnel-backed local-runtime projects are assessed by the control-plane worker through `scripts/start-local-frontend.sh`, but the LobeHub wrapper only documented the compose helper.
-- Resolution: keep `scripts/start-local-frontend.sh` in the project wrapper as the control-plane service entry that waits for Docker, starts the Compose stack, and keeps probing port 3210.
-- Prevention: when a project advertises `localRuntime.frontendLocalPort`, the runtime start script is part of the deployable contract and must be versioned with the repo.
+- **active Compose 数据目录必须绝对化**：PostgreSQL、Redis、RustFS 等数据路径不能依赖 checkout-relative `../data`。LaunchAgent 和 deploy profile 要指向 canonical data dir，避免 runtime helper 从错误目录启动新空库。
+- **watcher 要拥有 Docker Desktop 启动**：Docker-backed release route 的 watch 不能只等待 Docker；需要能启动 Docker Desktop、记录不可用层级，并在 local probe 失败后重新进入 Compose/probe loop。
+- **sidecar 健康要独立自愈**：homepage 可达不能证明 search、MCP、object storage 或 crawler 可用。watch/release health 应覆盖每个用户可见依赖边界。
