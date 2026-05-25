@@ -1,5 +1,11 @@
 # PROCESS
 
+## 2026-05-25
+
+- Problem: the LobeChat LaunchAgent watch loop could recreate Compose services every 30 seconds during repeated transient health failures, which turns a single dependency outage into log churn and container restart noise.
+- Resolution: `scripts/start-local-frontend.sh` now records per-recovery timestamps under `~/.cache/codex/lobechat-watch` and applies a default 300 second cooldown separately for stack, `searxng`, and `lobe` recovery actions.
+- Prevention: watchdog-style loops must distinguish detection frequency from repair frequency. A public route can be probed often, but destructive or noisy repair actions need per-action cooldown state.
+
 ## 2026-05-19
 
 - Problem: `/chat` still had several "looks clickable but may not work" surfaces around uploads, skill import, local Office, and Cloud Sandbox authorization. Upload PUTs could fail if the public `/chat-s3` proxy stripped or rewrote SigV4 query strings, `local-office-mcp` could not read uploaded `/chat-s3` files or plain text/code, built-in market skill duplicate imports returned an empty tool message, and OCR was advertised before host Tesseract existed.
