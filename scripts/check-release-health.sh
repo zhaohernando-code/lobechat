@@ -9,6 +9,9 @@ BROWSERLESS_PORT="${BROWSERLESS_PORT:-13000}"
 BROWSERLESS_TOKEN="${BROWSERLESS_TOKEN:-lobehub-local-browserless}"
 EXPECTED_APP_URL="${LOBE_EXPECTED_APP_URL:-https://hernando-zhao.cn}"
 EXPECTED_OIDC_ISSUER="${LOBE_EXPECTED_OIDC_ISSUER:-https://hernando-zhao.cn}"
+SEARCH_HEALTH_RETRIES="${LOBE_SEARCH_HEALTH_RETRIES:-3}"
+SEARCH_HEALTH_RETRY_DELAY="${LOBE_SEARCH_HEALTH_RETRY_DELAY:-3}"
+STRICT_SEARCH_HEALTH="${LOBE_STRICT_SEARCH_HEALTH:-0}"
 MODE="${1:-full}"
 
 fail() {
@@ -16,24 +19,37 @@ fail() {
   exit 1
 }
 
+warn() {
+  echo "LobeChat release health warning: $*" >&2
+}
+
 check_search_health() {
   check_one_search "openai" "SearXNG English search returned no usable results"
-  check_one_search "上证指数 000001 行情" "SearXNG Chinese finance search returned no usable results" "上证|东方财富|新浪|A股|指数|同花顺|上海证券交易所"
+
+  if ! check_one_search "上证指数 000001 行情" "SearXNG Chinese finance search returned no usable results" "上证|东方财富|新浪|A股|指数|同花顺|上海证券交易所" "optional"; then
+    if [[ "$STRICT_SEARCH_HEALTH" == "1" ]]; then
+      fail "SearXNG Chinese finance search returned no usable results"
+    fi
+    warn "SearXNG Chinese finance search returned no usable results; continuing because LOBE_STRICT_SEARCH_HEALTH is not enabled"
+  fi
 }
 
 check_one_search() {
   local query="$1"
   local error_message="$2"
   local expected_pattern="${3:-}"
+  local severity="${4:-required}"
+  local attempt=1
   local search_response
-  search_response="$(
-    curl -fsS \
-      --get "http://127.0.0.1:${SEARXNG_PORT}/search" \
-      --data-urlencode "q=${query}" \
-      --data "format=json"
-  )" || fail "SearXNG JSON API is not reachable on 127.0.0.1:${SEARXNG_PORT}"
 
-  SEARCH_RESPONSE="$search_response" EXPECTED_PATTERN="$expected_pattern" python3 - <<'PY' || fail "$error_message"
+  while (( attempt <= SEARCH_HEALTH_RETRIES )); do
+    if search_response="$(
+      curl -fsS \
+        --max-time 20 \
+        --get "http://127.0.0.1:${SEARXNG_PORT}/search" \
+        --data-urlencode "q=${query}" \
+        --data "format=json"
+    )" && SEARCH_RESPONSE="$search_response" EXPECTED_PATTERN="$expected_pattern" python3 - <<'PY'
 import json
 import os
 import re
@@ -58,6 +74,21 @@ if pattern:
     if not re.search(pattern, joined, re.I):
         sys.exit(1)
 PY
+    then
+      return 0
+    fi
+
+    if (( attempt < SEARCH_HEALTH_RETRIES )); then
+      sleep "$SEARCH_HEALTH_RETRY_DELAY"
+    fi
+    attempt=$((attempt + 1))
+  done
+
+  if [[ "$severity" == "optional" ]]; then
+    return 1
+  fi
+
+  fail "$error_message"
 }
 
 check_browserless_health() {

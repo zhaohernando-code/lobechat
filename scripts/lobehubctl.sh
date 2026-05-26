@@ -343,7 +343,7 @@ Commands:
   recreate-lobe Recreate only the LobeHub app container
   recreate-search Recreate only the SearXNG search container
   health       Validate local route, root-domain OIDC sign-in bootstrap, and SearXNG JSON API
-  health-search Validate the local SearXNG JSON API
+  health-search Validate the local SearXNG JSON API and crawl sidecar; set LOBE_STRICT_SEARCH_HEALTH=1 for strict Chinese finance results
   down         Stop services
   restart      Restart services
   ps           Show service status

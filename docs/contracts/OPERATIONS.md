@@ -89,6 +89,7 @@ scripts/lobehubctl.sh up
 ## Mac 本机风险
 
 - Docker Desktop 必须保持运行。
+- Docker Desktop 资源建议至少 `8 GiB` 内存、`4` CPU、`2 GiB` swap；`4 GiB / 2 CPU` 可以启动主链路，但 Browserless 和搜索 sidecar 同时运行时容易放大延迟和恢复窗口。
 - Mac 不能休眠。
 - 端口 `3210/54329/63790/9000/9001` 不能被占用。
 - 服务器入口层到本机的隧道/代理必须持续在线。
@@ -121,4 +122,4 @@ curl -I https://hernando-zhao.cn/chat/
 ~/codex/projects/lobechat/scripts/lobehubctl.sh health-search
 ```
 
-`health` 会确认 `deploy/.env` 中 `APP_URL=https://hernando-zhao.cn`、`AUTH_DISABLE_EMAIL_PASSWORD=1`、`AUTH_SSO_PROVIDERS=generic-oidc`、`AUTH_GENERIC_OIDC_ID=lobehub`、`AUTH_GENERIC_OIDC_SECRET` 非空、`AUTH_GENERIC_OIDC_ISSUER=https://hernando-zhao.cn`、`SEARCH_PROVIDERS=searxng`、`CRAWLER_IMPLS`、`BROWSERLESS_URL` 和 `BROWSERLESS_TOKEN`，并 POST 本地 `/api/auth/sign-in/oauth2`，要求返回根域 `/oidc/authorize`。它还要求 `127.0.0.1:18080/search?...&format=json` 同时通过英文搜索和中文财经搜索，并要求 `127.0.0.1:13000/content?token=...` 能抓取 `example.com`。`health-search` 探测搜索和爬取边界，方便把 web-search/crawl 退化和 `/chat` 首页故障分开定位。如果搜索健康检查失败，watch 会重建 `searxng` 容器；如果 OIDC/app 健康检查失败，watch 会重建 `lobe` 容器。
+`health` 会确认 `deploy/.env` 中 `APP_URL=https://hernando-zhao.cn`、`AUTH_DISABLE_EMAIL_PASSWORD=1`、`AUTH_SSO_PROVIDERS=generic-oidc`、`AUTH_GENERIC_OIDC_ID=lobehub`、`AUTH_GENERIC_OIDC_SECRET` 非空、`AUTH_GENERIC_OIDC_ISSUER=https://hernando-zhao.cn`、`SEARCH_PROVIDERS=searxng`、`CRAWLER_IMPLS`、`BROWSERLESS_URL` 和 `BROWSERLESS_TOKEN`，并 POST 本地 `/api/auth/sign-in/oauth2`，要求返回根域 `/oidc/authorize`。它还要求 `127.0.0.1:18080/search?...&format=json` 通过稳定英文搜索，并要求 `127.0.0.1:13000/content?token=...` 能抓取 `example.com`。中文财经搜索默认作为告警信号保留，因为上游搜索引擎会出现 CAPTCHA、解析变化或代理抖动；需要人工发布验收时可设置 `LOBE_STRICT_SEARCH_HEALTH=1` 让中文财经搜索失败阻断命令。`health-search` 探测搜索和爬取边界，方便把 web-search/crawl 退化和 `/chat` 首页故障分开定位。如果强制搜索健康检查失败，watch 会重建 `searxng` 容器；如果 OIDC/app 健康检查失败，watch 会重建 `lobe` 容器。

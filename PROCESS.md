@@ -31,6 +31,7 @@
 ## Search、MCP 与 Tooling
 
 - **搜索健康要验证可用结果**：SearXNG 返回 200 JSON 不够；必须检查代表性中文/英文 query 有结果，并验证 LobeHub 使用的 Browserless/page-content 端点。
+- **自愈探针不能把外部引擎波动当成本地故障**：watcher 默认探针应证明 SearXNG JSON API、至少一个稳定搜索结果和 Browserless 可用；容易受 CAPTCHA、解析变化或代理波动影响的中文/特定领域搜索应默认告警，只有人工发布验收或严格模式才阻断。
 - **容器搜索出网路径要显式**：Mac 上的 containerized sidecar 不应依赖 LaunchAgent 环境继承；需要代理时把 host proxy path 写入配置和 health check。
 - **本地 MCP 默认 stateless**：被 LobeHub 消费的本地 MCP 服务应 stateless，除非 client/server session lifecycle 已经持久化。重启后必须用同一个失败 topic 验证恢复，而不是只用 direct client。
 - **工具 schema 可见不等于可执行**：custom MCP/plugin 显示在 UI 中不够；验收要有真实 tool-call audit log、output artifact 和 public download URL。

@@ -1,5 +1,13 @@
 # LobeChat Deployment Decisions
 
+[2026-05-26T23:05:00+08:00] Docker resource and watcher health baseline decision:
+The local Docker Desktop baseline for the full `/chat` stack is raised to 8 GiB memory, 4 CPUs, and 2 GiB swap. The LaunchAgent health loop must not recreate `searxng` solely because a volatile Chinese finance query has no result; default search health proves the local SearXNG JSON API, a stable English result path, and Browserless crawl, while `LOBE_STRICT_SEARCH_HEALTH=1` remains available for manual strict acceptance.
+
+补充说明
+- The previous 4 GiB / 2 CPU Docker Desktop allocation could run the stack, but Browserless plus LobeHub plus sidecars left little headroom during health checks.
+- SearXNG upstream engine behavior includes CAPTCHA, parsing changes, and proxy-dependent failures; those are search-quality signals, not always local container defects.
+- Recreating containers on every volatile upstream miss creates user-visible `/chat` recovery windows, so the watcher should reserve recreation for local API/crawl failures or strict acceptance failures.
+
 [2026-05-20T02:30:00+08:00] Local DS Pro file and skill baseline decision:
 Root DS Pro/DeepSeek assistants must use local tools for Office files, uploads, OCR, and market-skill import. Internal capabilities are not allowed to depend on the broken official LobeHub Cloud Sandbox authorization flow.
 
