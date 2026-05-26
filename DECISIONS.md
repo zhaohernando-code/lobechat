@@ -1,5 +1,13 @@
 # LobeChat Deployment Decisions
 
+[2026-05-27T00:20:00+08:00] Global local Office MCP baseline decision:
+`local-office-mcp` is a deployment-level capability, not a per-account optional setup step. The wrapper must continuously sync the local Office MCP custom plugin, the local Office market skill row, DeepSeek agent plugin lists, and user default-agent plugin lists to every current user so newly provisioned root-domain accounts can use Office/file tools without manual DB patching.
+
+补充说明
+- LobeHub stores custom plugins and local skills per user, so "global" means an idempotent deployment baseline sync over all users rather than a single shared database row.
+- The sync keeps `local-office-mcp`, `openclaw-skills-office-mcp`, `lobe-agent-documents`, and `lobe-skill-store` attached to DeepSeek agents and default agents, while continuing to remove `lobe-cloud-sandbox`.
+- The LaunchAgent watch loop owns this sync on startup and periodically afterward, because new users can appear after the app is already running.
+
 [2026-05-26T23:05:00+08:00] Docker resource and watcher health baseline decision:
 The local Docker Desktop baseline for the full `/chat` stack is raised to 8 GiB memory, 4 CPUs, and 2 GiB swap. The LaunchAgent health loop must not recreate `searxng` solely because a volatile Chinese finance query has no result; default search health proves the local SearXNG JSON API, a stable English result path, and Browserless crawl, while `LOBE_STRICT_SEARCH_HEALTH=1` remains available for manual strict acceptance.
 

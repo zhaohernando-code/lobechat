@@ -34,6 +34,7 @@
 - **自愈探针不能把外部引擎波动当成本地故障**：watcher 默认探针应证明 SearXNG JSON API、至少一个稳定搜索结果和 Browserless 可用；容易受 CAPTCHA、解析变化或代理波动影响的中文/特定领域搜索应默认告警，只有人工发布验收或严格模式才阻断。
 - **容器搜索出网路径要显式**：Mac 上的 containerized sidecar 不应依赖 LaunchAgent 环境继承；需要代理时把 host proxy path 写入配置和 health check。
 - **本地 MCP 默认 stateless**：被 LobeHub 消费的本地 MCP 服务应 stateless，除非 client/server session lifecycle 已经持久化。重启后必须用同一个失败 topic 验证恢复，而不是只用 direct client。
+- **部署级 MCP 要覆盖未来用户**：LobeHub 的 custom plugin、local skill 和 agent plugin list 是按用户存储的；本地 Office MCP 这类默认能力必须由启动/watch 同步补齐所有用户和新用户，不能只修当前账号或已有 agent。
 - **工具 schema 可见不等于可执行**：custom MCP/plugin 显示在 UI 中不够；验收要有真实 tool-call audit log、output artifact 和 public download URL。
 - **tool download URL 必须走 public edge**：本机文件存在和 MCP 成功不代表用户能下载。返回给浏览器的 URL 要从 `https://hernando-zhao.cn/chat-files/...` 等真实边缘路径验证。
 

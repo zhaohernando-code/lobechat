@@ -297,6 +297,12 @@ case "${1:-help}" in
   health-search)
     "$ROOT_DIR/scripts/check-release-health.sh" search
     ;;
+  sync-office-mcp)
+    "$ROOT_DIR/scripts/sync-office-mcp-baseline.sh" sync
+    ;;
+  health-office-mcp)
+    "$ROOT_DIR/scripts/sync-office-mcp-baseline.sh" health
+    ;;
   down)
     require_env
     compose down
@@ -344,6 +350,8 @@ Commands:
   recreate-search Recreate only the SearXNG search container
   health       Validate local route, root-domain OIDC sign-in bootstrap, and SearXNG JSON API
   health-search Validate the local SearXNG JSON API and crawl sidecar; set LOBE_STRICT_SEARCH_HEALTH=1 for strict Chinese finance results
+  sync-office-mcp Sync the local Office MCP custom plugin and office skill baseline to every user
+  health-office-mcp Validate every user and DeepSeek agent has the Office MCP baseline
   down         Stop services
   restart      Restart services
   ps           Show service status

@@ -8,7 +8,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT="${LOBE_PORT:-3210}"
 DOCKER_WAIT_SECONDS="${LOBE_DOCKER_WAIT_SECONDS:-300}"
 RECOVERY_COOLDOWN_SECONDS="${LOBE_RECOVERY_COOLDOWN_SECONDS:-300}"
+OFFICE_MCP_SYNC_INTERVAL_SECONDS="${LOBE_OFFICE_MCP_SYNC_INTERVAL_SECONDS:-300}"
 STATE_DIR="${LOBE_WATCH_STATE_DIR:-$HOME/.cache/codex/lobechat-watch}"
+last_office_mcp_sync=0
 
 log() {
   printf '[%s] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*"
@@ -72,6 +74,21 @@ ensure_stack() {
   "$REPO_ROOT/scripts/lobehubctl.sh" up
 }
 
+sync_office_mcp_baseline() {
+  local now output
+  now="$(date '+%s')"
+  if (( now - last_office_mcp_sync < OFFICE_MCP_SYNC_INTERVAL_SECONDS )); then
+    return 0
+  fi
+
+  if output="$("$REPO_ROOT/scripts/lobehubctl.sh" sync-office-mcp 2>&1)"; then
+    last_office_mcp_sync="$now"
+    log "Office MCP baseline synced. ${output}"
+  else
+    log "Office MCP baseline sync failed; will retry. ${output}"
+  fi
+}
+
 probe_local_url() {
   curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1
 }
@@ -86,8 +103,11 @@ probe_search_health() {
 
 wait_for_docker
 ensure_stack
+sync_office_mcp_baseline
 
 while true; do
+  sync_office_mcp_baseline
+
   if ! probe_local_url; then
     log "Local LobeHub probe failed on 127.0.0.1:${PORT}; restarting Compose stack."
     if cooldown_allows "compose-stack"; then
