@@ -183,14 +183,14 @@ services:
       CONCURRENT: ${BROWSERLESS_CONCURRENT:-2}
       QUEUED: ${BROWSERLESS_QUEUED:-10}
       TIMEOUT: ${BROWSERLESS_TIMEOUT:-60000}
-      HTTP_PROXY: ${HTTP_PROXY:-}
-      HTTPS_PROXY: ${HTTPS_PROXY:-}
-      ALL_PROXY: ${ALL_PROXY:-}
-      NO_PROXY: ${NO_PROXY:-127.0.0.1,localhost,postgresql,redis,rustfs,searxng,lobe,browserless}
-      http_proxy: ${HTTP_PROXY:-}
-      https_proxy: ${HTTPS_PROXY:-}
-      all_proxy: ${ALL_PROXY:-}
-      no_proxy: ${NO_PROXY:-127.0.0.1,localhost,postgresql,redis,rustfs,searxng,lobe,browserless}
+      HTTP_PROXY: ${BROWSERLESS_HTTP_PROXY:-http://host.docker.internal:17890}
+      HTTPS_PROXY: ${BROWSERLESS_HTTPS_PROXY:-http://host.docker.internal:17890}
+      ALL_PROXY: ${BROWSERLESS_ALL_PROXY:-socks5://host.docker.internal:17891}
+      NO_PROXY: ${BROWSERLESS_NO_PROXY:-127.0.0.1,localhost,postgresql,redis,rustfs,searxng,lobe,browserless}
+      http_proxy: ${BROWSERLESS_HTTP_PROXY:-http://host.docker.internal:17890}
+      https_proxy: ${BROWSERLESS_HTTPS_PROXY:-http://host.docker.internal:17890}
+      all_proxy: ${BROWSERLESS_ALL_PROXY:-socks5://host.docker.internal:17891}
+      no_proxy: ${BROWSERLESS_NO_PROXY:-127.0.0.1,localhost,postgresql,redis,rustfs,searxng,lobe,browserless}
     networks:
       - lobehub
 

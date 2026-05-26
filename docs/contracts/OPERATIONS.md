@@ -90,6 +90,7 @@ scripts/lobehubctl.sh up
 
 - Docker Desktop 必须保持运行。
 - Docker Desktop 资源建议至少 `8 GiB` 内存、`4` CPU、`2 GiB` swap；`4 GiB / 2 CPU` 可以启动主链路，但 Browserless 和搜索 sidecar 同时运行时容易放大延迟和恢复窗口。
+- Browserless 在容器内访问外网时不能使用 Mac 主机视角的 `127.0.0.1` 代理地址；`BROWSERLESS_HTTP_PROXY` / `BROWSERLESS_HTTPS_PROXY` 默认指向 `http://host.docker.internal:17890`。
 - Mac 不能休眠。
 - 端口 `3210/54329/63790/9000/9001` 不能被占用。
 - 服务器入口层到本机的隧道/代理必须持续在线。
