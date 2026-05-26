@@ -7,7 +7,7 @@ The local Docker Desktop baseline for the full `/chat` stack is raised to 8 GiB 
 - The previous 4 GiB / 2 CPU Docker Desktop allocation could run the stack, but Browserless plus LobeHub plus sidecars left little headroom during health checks.
 - SearXNG upstream engine behavior includes CAPTCHA, parsing changes, and proxy-dependent failures; those are search-quality signals, not always local container defects.
 - Recreating containers on every volatile upstream miss creates user-visible `/chat` recovery windows, so the watcher should reserve recreation for local API/crawl failures or strict acceptance failures.
-- Browserless runs inside Docker, so its proxy defaults must point at `host.docker.internal`, not the Mac host's `127.0.0.1` proxy address.
+- Browserless should not inherit the Mac host's `127.0.0.1` proxy environment. In the current Docker/TUN network, Browserless `/content` succeeds with no proxy variables, while proxy variables make Chromium fail with `ERR_PROXY_CONNECTION_FAILED` or `ERR_EMPTY_RESPONSE`.
 
 [2026-05-20T02:30:00+08:00] Local DS Pro file and skill baseline decision:
 Root DS Pro/DeepSeek assistants must use local tools for Office files, uploads, OCR, and market-skill import. Internal capabilities are not allowed to depend on the broken official LobeHub Cloud Sandbox authorization flow.
